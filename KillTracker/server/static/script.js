@@ -211,7 +211,9 @@ function addKillTableRow(rowData) {
 	cell2.innerHTML = rowData.shipName;
 	//cell3.innerHTML = rowData.faction;
 	//let factionCell = row.insertCell(3);
-	let rewardsText = rowData.Rewards.map(reward => `${reward.Faction}: ${reward.Reward.toLocaleString()}`).join(', ');
+	//let rewardsText = rowData.Rewards.map(reward => `${reward.Faction}: ${reward.Reward.toLocaleString()}`).join(', ');
+	let rewardsText = rowData.Reward.map(reward => `${reward.Faction}: ${reward.Reward.toLocaleString()}`).join(', ');
+
 	cell3.textContent = rewardsText;
 	cell4.innerHTML = rowData.eventType;
 	cell5.innerHTML = rowData.bountyAmount.toLocaleString();
@@ -229,7 +231,7 @@ function addKillTableRow(rowData) {
 
 function updateSummaryTables(kill_data) {
 	//updateNestedTable('factionBounties', kill_data.faction, kill_data.bountyAmount);
-	for (const reward of kill_data.Rewards) {
+	for (const reward of kill_data.Reward) {
 		updateNestedTable('factionBounties', reward.Faction, reward.Reward);
 	  }	
   // only update NestedTable if the shipName is not empty

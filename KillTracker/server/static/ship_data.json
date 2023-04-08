@@ -1,36 +1,36 @@
 {
   "adder": {
-    "id": "Adder",
+    "id": "adder",
     "name": "Adder",
     "image_filename": "adder.png"
   },
   "alliance_challenger": {
-    "id": "Alliance Challenger",
+    "id": "alliance_challenger",
     "name": "Alliance Challenger",
     "image_filename": "alliance-challenger.png"
   },
   "alliance_chieftain": {
-    "id": "Alliance Chieftain",
+    "id": "alliance_chieftain",
     "name": "Alliance Chieftain",
     "image_filename": "alliance-chieftain.png"
   },
   "alliance_crusader": {
-    "id": "Alliance Crusader",
+    "id": "alliance_crusader",
     "name": "Alliance Crusader",
     "image_filename": "alliance-crusader.png"
   },
   "anaconda": {
-    "id": "Anaconda",
+    "id": "anaconda",
     "name": "Anaconda",
     "image_filename": "anaconda.png"
   },
   "asp": {
-    "id": "Asp Explorer",
+    "id": "asp",
     "name": "Asp Explorer",
     "image_filename": "asp-explorer.png"
   },
   "asp_scout": {
-    "id": "Asp Scout",
+    "id": "asp_scout",
     "name": "Asp Scout",
     "image_filename": "asp-scout.png"
   },

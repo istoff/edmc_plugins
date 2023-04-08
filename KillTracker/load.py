@@ -18,7 +18,7 @@ PLUGIN_VERSION = "0.3"
 TARGET_URL = "http://127.0.0.1:5000/new_kill"
 
 
-LOGGING_ENABLED = False # Set to True to enable logging, or False to disable
+LOGGING_ENABLED = True # Set to True to enable logging, or False to disable
 
 
 
@@ -38,6 +38,7 @@ def test_http_post():
     send_kill_data(test_data)
 
 def create_kill_data(entry):
+    logging.info (entry)
     return {
         'timestamp': entry['timestamp'],
         'eventType': entry['event'],
