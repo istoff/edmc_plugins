@@ -18,7 +18,7 @@ PLUGIN_VERSION = "0.3"
 TARGET_URL = "http://127.0.0.1:5000/new_kill"
 
 
-LOGGING_ENABLED = True # Set to True to enable logging, or False to disable
+LOGGING_ENABLED = False # Set to True to enable logging, or False to disable
 
 
 
@@ -43,11 +43,11 @@ def create_kill_data(entry):
         'timestamp': entry['timestamp'],
         'eventType': entry['event'],
         'shipType': entry['Target'] if 'Target' in entry else 'Unknown',
-        'faction': entry['VictimFaction'] if 'VictimFaction' in entry else 'Unknown',
+        'Faction': entry['VictimFaction'] if 'VictimFaction' in entry else 'Unknown',
         'bountyAmount': entry['TotalReward'] if 'TotalReward' in entry else entry['Reward'],
         'AwardingFaction': entry['AwardingFaction'] if 'AwardingFaction' in entry else 'Unknown',
         'VictimFaction': entry['VictimFaction'] if 'VictimFaction' in entry else 'Unknown',
-        'Reward': entry['rewards'] if 'rewards' in entry else 0
+        'Rewards': entry['Rewards'] if 'Rewards' in entry else 0
     }
 
 def plugin_start3(plugin_dir: str) -> Tuple[str, str, str]:
