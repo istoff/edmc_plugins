@@ -1,0 +1,127 @@
+
+
+body {
+    background-color: black;
+    color: #FFA500;
+    font-family: Arial, sans-serif;
+}
+
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+table, th, td {
+    border: 1px solid #FFA500;
+}
+
+th {
+    background-color: #1a1a1a;
+    color: #FFA500;
+    cursor: pointer;
+}
+
+td {
+    padding: 2px;
+    text-align: left;
+}
+
+tr:nth-child(even) {
+    background-color: #333;
+}
+
+.nested-table td {
+  vertical-align: top;
+}
+
+.pagination-controls {
+  margin-bottom: 10px;
+}
+
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.grid-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: black;
+  padding: 1rem;
+  border-radius: 2px;
+  max-height: 400px;
+}
+
+.image-caption {
+  text-align: center;
+  margin-top: 0.5rem;
+  color: #f0a;
+}
+.card {
+  background-color: ff9800;
+  border-radius: 2px;
+  box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 200px;
+}
+
+.card-image {
+  flex: 1;
+  overflow: hidden;
+  width: auto;
+  height: autp;
+  object-fit: fill;
+  background-color:rgb(27, 26, 26)
+  
+}
+
+.card-image img {
+  width: 100%;
+}
+
+.card-content {
+  padding: 0px;
+  color: white;
+}
+
+.card-title {
+  margin-top: 0;
+  margin-bottom: 0px;
+  font-size: 16px;
+  color: white;
+}
+
+.card-text {
+  margin-top: 0;
+  margin-bottom: 0;
+  font-size: 12px;
+  color: #FFA500;
+  ;
+}
+
+.custom-orange-button {
+  --mdc-theme-on-primary: #ff9800; /* Adjust this color to the desired orange shade */
+  --mdc-theme-primary: #ffffff; /* Adjust this color for the text color on the button */
+  min-width: 100px; /* Adjust this value to set the minimum width */
+  height: 30px; /* Adjust this value to set the button height */
+  border: 2;
+  background-color: #ff9800;
+}
+
+.button {
+  background-color: #FFA500; /* Elite */
+  border: none;
+  color: rgb(43, 41, 41);
+  padding: 2px 2px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 12px;
+}
