@@ -1,4 +1,12 @@
 ## Changes 
+9 April 2023
+- Changed style for totals
+- Added location at the top left below heading
+- Added style to selected button, desktop or mobile
+- Removed locales from numbers.  Was affecting totals.
+
+
+
 8 April 2023
 - added prefs UI.  Not fully integrated, but allows you to do connection test 
 - changed some UI elements for neatness to reduce screen space

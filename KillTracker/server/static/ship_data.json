@@ -35,7 +35,7 @@
     "image_filename": "asp-scout.png"
   },
   "beluga_liner": {
-    "id": "Beluga Liner",
+    "id": "beluga_liner",
     "name": "Beluga Liner",
     "image_filename": "beluga-liner.png"
   },
@@ -46,11 +46,11 @@
   },
   "cobramkiv": {
     "id": "cobramkiv",
-    "name": "cobramkiv",
+    "name": "Cobra MkIV",
     "image_filename": "cobra-mkiv.png"
   },
   "cyclops": {
-    "id": "Cyclops",
+    "id": "cyclops",
     "name": "Cyclops",
     "image_filename": "cyclops.png"
   },
@@ -70,7 +70,7 @@
     "image_filename": "dolphin.png"
   },
   "Eagle": {
-    "id": "Eagle",
+    "id": "eagle",
     "name": "Eagle MkII",
     "image_filename": "eagle.png"
   },
@@ -100,7 +100,7 @@
     "image_filename": "fer-de-lance.png"
   },
   "hauler": {
-    "id": "Hauler",
+    "id": "hauler",
     "name": "Hauler",
     "image_filename": "hauler.png"
   },
@@ -120,7 +120,7 @@
     "image_filename": "imperial-cutter.png"
   },
   "imperial_eagle": {
-    "id": "imperial_eagle",
+    "id": "empire_eagle",
     "name": "Imperial Eagle",
     "image_filename": "imperial-eagle.png"
   },
@@ -170,12 +170,12 @@
     "image_filename": "type-6-transporter.png"
   },
   "type_7": {
-    "id": "Type_7",
+    "id": "type_7",
     "name": "Type-7",
     "image_filename": "type-7.png"
   },
   "type_9_heavy": {
-    "id": "Type_9_heavy",
+    "id": "type_9_heavy",
     "name": "Type-9 Heavy",
     "image_filename": "type-9-heavy.png"
   },

@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 
 
 PLUGIN_NAME = "KillsTracker"
-PLUGIN_VERSION = "0.3"
+PLUGIN_VERSION = "0.4"
 TARGET_URL = "http://127.0.0.1:5000/new_kill"
 
 
@@ -37,7 +37,7 @@ def test_http_post():
     test_data = {'test': 'This is a test post from the EDMC plugin.'}
     send_kill_data(test_data)
 
-def create_kill_data(entry):
+def create_kill_data(entry, system,station,cmdr):
     logging.info (entry)
     return {
         'timestamp': entry['timestamp'],
@@ -47,7 +47,10 @@ def create_kill_data(entry):
         'bountyAmount': entry['TotalReward'] if 'TotalReward' in entry else entry['Reward'],
         'AwardingFaction': entry['AwardingFaction'] if 'AwardingFaction' in entry else 'Unknown',
         'VictimFaction': entry['VictimFaction'] if 'VictimFaction' in entry else 'Unknown',
-        'Rewards': entry['Rewards'] if 'Rewards' in entry else 0
+        'Rewards': entry['Rewards'] if 'Rewards' in entry else 0,
+        'System': system if system is not None else '',
+        'Station': station if station is not None else '',
+        'Cmdr': cmdr if cmdr is not None else ''
     }
 
 def plugin_start3(plugin_dir: str) -> Tuple[str, str, str]:
@@ -60,10 +63,14 @@ def plugin_start3(plugin_dir: str) -> Tuple[str, str, str]:
     return PLUGIN_NAME
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
+    if LOGGING_ENABLED:
+           logging.info(f'Detected event: {entry["event"]}')
+           logging.info(entry);
     if entry['event'] in ['Bounty', 'PVPKill', 'FactionKillBond']:
         if LOGGING_ENABLED:
             logging.info(f'Detected event: {entry["event"]}')
-        kill_data = create_kill_data(entry)
+        kill_data = create_kill_data(entry,system,station,cmdr)
+        
         send_kill_data(kill_data)
 
 def plugin_prefs(parent: nb.Notebook, cmdr: str, is_beta: bool) -> Optional[tk.Frame]:

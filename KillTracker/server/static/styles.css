@@ -13,6 +13,14 @@ table {
     margin-bottom: 10px;
 }
 
+.footer-row {
+  font-weight: bold;
+  text-align: right;
+  background-color:#AAA50099;
+  color: black;
+  border-collapse: collapse;
+}
+
 table, th, td {
     border: 1px solid #FFA500;
 }
@@ -123,5 +131,21 @@ tr:nth-child(even) {
   text-align: center;
   text-decoration: none;
   display: inline-block;
+  font-size: 10px;
+}
+
+.active {
+  background-color: #FFA550; /* Elite */
+  border: 2;  
+  color: rgb(43, 41, 41);
+  padding: 2px 2px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
   font-size: 12px;
 }
+
+  .inactive {
+    background-color: #4CAF50;
+    color: white;
+  }

@@ -21,13 +21,14 @@
     <table>
       <tr>        
         <td>
-          <h5>Elite Dangerous: Kills Tracker</h5>
+          <bold>Elite Dangerous: Kills Tracker</bold><br>
+	  <label id="status" for="fontSize">Status</label>
         </td>
         <td>
           <div id="controlPanel">
             <button class="button" onclick="generateRandomRow()">Add Sample</button>
-            <button class="button" onclick="switchLayout('default')">Desktop</button>
-            <button class="button" onclick="switchLayout('mobile')">Mobile</button>
+            <button class="button" id='desktopButton' onclick="switchLayout('default')">Desktop</button>
+            <button class="button" id='mobileButton'   onclick="switchLayout('mobile')">Mobile</button>
             <div class="tabs" id = "mobiletabs" style="display: none;">
               <button class="button" onclick="openTab(event, 'killsTablePlaceholderMobile')">Kills Table</button>
               <button class="button" onclick="openTab(event, 'summaryTablesPlaceholderMobile')">Summary</button>
