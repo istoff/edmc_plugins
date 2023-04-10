@@ -25,6 +25,6 @@ def update_kills():
 
 if __name__ == '__main__':
     if localhost:
-        socketio.run(app, host='127.0.0.1', port=5000, debug=True)
+        socketio.run(app, host='127.0.0.1', port=5050, debug=True)
     else:
-        socketio.run(app, host='10.0.0.90', port=5000, debug=True)
+        socketio.run(app, host='10.0.0.90', port=5050, debug=True)

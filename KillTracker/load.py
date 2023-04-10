@@ -15,8 +15,8 @@ from urllib.parse import urlparse
 
 PLUGIN_NAME = "KillsTracker"
 PLUGIN_VERSION = "0.4"
-TARGET_URL = "http://127.0.0.1:5000/new_kill"
-
+TARGET_URL = "http://127.0.0.1:5050/new_kill"
+#TARGET_URL = "http://10.0.0.90:5050/new_kill"
 
 LOGGING_ENABLED = False # Set to True to enable logging, or False to disable
 
@@ -59,7 +59,7 @@ def plugin_start3(plugin_dir: str) -> Tuple[str, str, str]:
         log_file_path = os.path.join(plugin_dir, 'ship_kills_plugin.log')
         logging.basicConfig(filename=log_file_path, level=logging.DEBUG, format='%(asctime)s [%(levelname)s] %(message)s')
 
-    test_http_post()
+    #test_http_post()
     return PLUGIN_NAME
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):

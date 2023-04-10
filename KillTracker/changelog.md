@@ -1,11 +1,15 @@
 ## Changes 
+10 April 2023
+- Added Favicon
+- Moved Grid before Summary.  I like the look
+- More font/slimming in the UI
+- Can't find ship info in Combat Zone kill events.  Ship is blank.
+
 9 April 2023
 - Changed style for totals
 - Added location at the top left below heading
 - Added style to selected button, desktop or mobile
 - Removed locales from numbers.  Was affecting totals.
-
-
 
 8 April 2023
 - added prefs UI.  Not fully integrated, but allows you to do connection test 

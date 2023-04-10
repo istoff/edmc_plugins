@@ -25,6 +25,26 @@ function loadShipData() {
 
 
 
+function addCardListener()
+{
+	cardContainer = document.getElementById("card-container");
+cardContainer.addEventListener("wheel", (event) => {
+  const currentFontSize = parseFloat(window.getComputedStyle(cardContainer).fontSize);
+  let newFontSize;
+
+  if (event.deltaY > 0) {
+    // Scrolling down: decrease the font size
+    newFontSize = Math.max(currentFontSize - 0.1, 0.5);
+  } else {
+    // Scrolling up: increase the font size
+    newFontSize = Math.min(currentFontSize + 0.1, 2);
+  }
+
+  cardContainer.style.fontSize = newFontSize + "rem";
+  event.preventDefault();
+});
+}
+
 
 
 socket.on('connect', () => {
@@ -54,6 +74,11 @@ socket.on('new_kill', (killData) => {
 	addKillTableRow(killData);
 	//killDataList.push(killData);
 	//updateSummaryTables(killData);
+	// Reapply the sorting based on the last sorted column index and sortOrder for each table
+Object.keys(tableSortInfo).forEach(tableId => {
+  const { lastSortedColumnIndex } = tableSortInfo[tableId];
+  sortTable(tableId, lastSortedColumnIndex, true);
+});
 });
 
 
@@ -76,29 +101,39 @@ function generateRandomRow() {
 
 		randomKillData = {
 			timestamp: new Date().toISOString(),
-			eventType: eventTypes[Math.floor(Math.random() * eventTypes.length)],
+			eventType: randomEventType,
 			shipType: randomShipId,
 			faction: factions[Math.floor(Math.random() * factions.length)],
 			bountyAmount: Math.floor(Math.random() * 100000) + 1000,
 			shipName: shipData[randomShipId].name,
 			shipImageFileName: shipData[randomShipId].image_filename,
-			victimFaction: ''
+			victimFaction: factions[Math.floor(Math.random() * factions.length)],
+			AwardingFaction: factions[Math.floor(Math.random() * factions.length)],
+			Rewards : [{'Faction': 'NULL', 'Reward': 399880}, {'Faction': 'Community of the Vault', 'Reward': 337909}]
+			
 		}
 
 	} else if (randomEventType === 'FactionKillBond') {
 		randomKillData = {
 			timestamp: new Date().toISOString(),
-			eventType: eventTypes[Math.floor(Math.random() * eventTypes.length)],
+			eventType: randomEventType,
 			shipType: '',
 			faction: factions[Math.floor(Math.random() * factions.length)],
 			bountyAmount: Math.floor(Math.random() * 100000) + 1000,
 			shipName: '',
 			shipImageFileName: '',
-			victimFaction: factions[Math.floor(Math.random() * factions.length)]
+			VictimFaction: factions[Math.floor(Math.random() * factions.length)],
+			AwardingFaction: factions[Math.floor(Math.random() * factions.length)],
 
 		}
 	}
 	addKillTableRow(randomKillData);
+// Reapply the sorting based on the last sorted column index and sortOrder for each table
+Object.keys(tableSortInfo).forEach(tableId => {
+  const { lastSortedColumnIndex } = tableSortInfo[tableId];
+  sortTable(tableId, lastSortedColumnIndex, true);	
+  });
+
 }
 
 let currentPage = 1;
@@ -313,7 +348,7 @@ function updateNestedTable(tableId, key, value) {
 	footerRow.insertCell(0).innerText = 'Total';
 	const footerTotalBountyCell = footerRow.insertCell(1)
 	const footerTotalCell = footerRow.insertCell(2)
-	footerTotalBountyCell.innerText = totalBounty;
+	footerTotalBountyCell.innerText = totalBounty.toLocaleString();
 	footerTotalCell.innerText = totalKills;
 	footerTotalBountyCell.style.textAlign = "right";
 	footerTotalCell.style.textAlign = "right";
@@ -324,13 +359,27 @@ function updateNestedTable(tableId, key, value) {
 	footerTotalCell.classList.add("footer-row");
 }
 
+const tableSortInfo = {
+  'factionBounties': { lastSortedColumnIndex: 1, sortOrder: 'desc' },
+  'shipTypeBounties': { lastSortedColumnIndex: 1, sortOrder: 'desc' },
+  'eventTypeBounties': { lastSortedColumnIndex: 1, sortOrder: 'desc' },
+};
 
-function sortTable(tableId, columnIndex) {
+
+function sortTable(tableId, columnIndex, keepExistingSortOrder = false) {
 	const table = document.getElementById(tableId);
 	const tfoot = table.tFoot;
 	const rows = Array.from(table.rows).slice(1).filter((row) => row.parentNode.tagName !== "TFOOT"); // Exclude the header row and footer row
 
 	let sortOrder = table.dataset.sortOrder === "asc" ? "desc" : "asc";
+	
+	  // If keepExistingSortOrder is true, don't toggle the sortOrder
+  if (keepExistingSortOrder) {
+    sortOrder = table.dataset.sortOrder;
+  } else {
+    table.dataset.sortOrder = sortOrder;
+  }
+	
 	table.dataset.sortOrder = sortOrder;
 
 	rows.sort((a, b) => {
@@ -356,6 +405,9 @@ function sortTable(tableId, columnIndex) {
 	if (tfoot) {
 		table.appendChild(tfoot);
 	}
+  tableSortInfo[tableId].lastSortedColumnIndex = columnIndex;
+  tableSortInfo[tableId].sortOrder = sortOrder;
+
 }
 
 
@@ -519,7 +571,8 @@ function updateShipTypeBountiesGrid() {
 
 		// Create a new card
 		const card = document.createElement("div");
-		card.className = "card";
+		card.className = "cards";
+		card.id = 'card-container'
 
 		// Create a new card image
 		const cardImage = document.createElement("div");
@@ -559,7 +612,7 @@ function updateShipTypeBountiesGrid() {
 		// Add the grid item to the grid
 		//grid.appendChild(gridItem);
 		shipTypeBountiesGrid.appendChild(gridItem);
-
+		addCardListener();
 	}
 }
 
@@ -589,7 +642,7 @@ function openTab(evt, tabName) {
 	}
 
 	document.getElementById(tabName).style.display = "block";
-	evt.currentTarget.className += " active";
+	//evt.currentTarget.className += " active";
 	if (tabName === 'killsTablePlaceholderMobile') {
 		document.getElementById('pagePrefs').style.display = 'block';
 	}

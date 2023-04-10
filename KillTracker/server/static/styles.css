@@ -3,7 +3,7 @@
 body {
     background-color: black;
     color: #FFA500;
-    font-family: Arial, sans-serif;
+    font-family: Roboto, sans-serif;
 }
 
 
@@ -11,6 +11,8 @@ table {
     border-collapse: collapse;
     width: 100%;
     margin-bottom: 10px;
+	font-family: Roboto, sans-serif;
+	font-size: 10px
 }
 
 .footer-row {
@@ -55,6 +57,13 @@ tr:nth-child(even) {
   padding: 1rem;
 }
 
+.cards {
+  font-size: 1rem;
+  transition: font-size 0.3s ease;
+}
+
+
+
 .grid-item {
   display: flex;
   flex-direction: column;
@@ -62,7 +71,7 @@ tr:nth-child(even) {
   background-color: black;
   padding: 1rem;
   border-radius: 2px;
-  max-height: 400px;
+  max-height: 300px;
 }
 
 .image-caption {
@@ -71,27 +80,29 @@ tr:nth-child(even) {
   color: #f0a;
 }
 .card {
-  background-color: ff9800;
+  background-color: white;
   border-radius: 2px;
   box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 200px;
+  max-width: 150px;
+  font-family: Roboto, sans-serif;
 }
 
 .card-image {
   flex: 1;
   overflow: hidden;
+  padding: 1px
   width: auto;
   height: autp;
-  object-fit: fill;
+  object-fit: cover;
   background-color:rgb(27, 26, 26)
   
 }
 
 .card-image img {
-  width: 100%;
+  max-width: 120px;
 }
 
 .card-content {
@@ -102,8 +113,9 @@ tr:nth-child(even) {
 .card-title {
   margin-top: 0;
   margin-bottom: 0px;
-  font-size: 16px;
+  font-size: 12px;
   color: white;
+  line-height :20px
 }
 
 .card-text {
@@ -111,6 +123,7 @@ tr:nth-child(even) {
   margin-bottom: 0;
   font-size: 12px;
   color: #FFA500;
+  line-height :14px
   ;
 }
 
@@ -136,7 +149,7 @@ tr:nth-child(even) {
 
 .active {
   background-color: #FFA550; /* Elite */
-  border: 2;  
+  border: 2 solid;  
   color: rgb(43, 41, 41);
   padding: 2px 2px;
   text-align: center;

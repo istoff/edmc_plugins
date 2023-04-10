@@ -13,6 +13,7 @@ There are 2 utilities provided.  One is a simple python http server you can run 
 ## Table of Contents
 
 - [Requirements](#requirements)
+- [Quick Start](#quickstart)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Folder Layout](#folder-layout)
@@ -30,6 +31,15 @@ There are 2 utilities provided.  One is a simple python http server you can run 
 - Flask
 - flask_socketio
 - Requests
+
+## QuickStart
+Assuming everything installed correctly.
+1 goto you EDMC plugins directory /Killtracker/
+2 check load.py and server.py are in sync w.r.t. server url.  Default is localhost.  Modify if you want to use your own IP and set LOCALHOST to false in server.py
+3 run python server.py to start the server.  open the url in a browser.
+4 start edmc.  check the plugin is loaded.  the prefs ui has a basic settings tab where you can test the server, but it doesn't save it yet.
+5 start killing. 
+
 
 ## Installation
 
@@ -85,20 +95,27 @@ python createTestKill.py
 - Top kills table with sorting and pagination.
 - Ship type grid view with sorting and dynamic resizing based on screen width.
 - Adjustable font size for tables.
-- Refresh button for summary tables.
+- Desktop / Mobile Mode - Mobile lets you pick one grid to focus on.
+- Some adjusting sizing of fonts for spaceing.
+- Click Grid ships to change sort order
 
 ## To-Do
  Android Support? (works via browser)
- Run on different browsers?
- Different Screen layouts? [started]
+ Run on different browsers?  Tested on Edge, Brave, Chrome, Samsung Internet
+ Different Screen layouts? Kind happy with it.
  Preferences screen for plugin? [started]
+ Get graphics for other kill types.   Thargoids, Scanners, etc.
+ I don't kill traders so I don't know if the other ship types will have working art.  The images are there, but possibly wrong filenames.
  
 ## Caveats
 This project is provided "as is" without warranty of any kind, either express or implied, including, but not limited to, the implied warranties of merchantability, fitness for a particular purpose, or non-infringement.
 The authors and contributors of this project shall not be held liable for any damages or loss caused or alleged to be caused by or in connection with the use of or reliance on the content provided.
 This project is not affiliated with or endorsed by the creators of Elite Dangerous or any of its affiliates or subsidiaries.
+99.9 %  of the code is written by ChatGPT4.  I have learned a ton about html/ js/ css, but it's not quality by any means.
+I want to learn a bit more about test driven development, so I might ask the AI to help me learn and implement it.
+I rarely play Elite anymore, so I'm probably not going to be able to be as active maintaining this as I would have liked.  I really want somebody to take it and make 100x better.  It started as an exercise in GPT4 and I remain an idiot programmer who doesn't really understand what I'm doing at all.
+When Elite has more planetary landing content and exploration of atmospheric worlds, I'll probably come back.  This could probably be modified fairly easily to get ground combat tracked as well, but I can't see myself bothering.
 
-Finally, I'm probably not going to be able to be as active maintaining this as I would have liked.  I really want somebody to take it and make 100x better.  It started as an exercise in GPT4 and I remain an idiot programmer who doesn't really understand what I'm doing at all.
 
 ## Credits
 All the developers of Elite Dangerous Market Connector and whoever wrote the docs for the plugin system.
