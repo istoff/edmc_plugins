@@ -1,4 +1,9 @@
 ## Changes 
+13 April 2023
+- Added persistence.  Kills don't delete after browser refresh.
+- Added button to manually wipe data. Needed due to persistence.
+- Preference screen mostly works.  Changes only saved when you click IP / Localhost buttons!
+
 10 April 2023
 - Added Favicon
 - Moved Grid before Summary.  I like the look

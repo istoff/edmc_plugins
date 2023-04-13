@@ -2,9 +2,26 @@
 const socket = io.connect('http://' + document.domain + ':' + location.port);
 let sortMode = 'shipType';
 let shipData = null;
+let killDataList = [];
+
+loadShipData();
 
 const mobileButton = document.getElementById("mobileButton");
 const desktopButton = document.getElementById("desktopButton");
+
+function saveData(key, data) {
+	console.log('Saving killDataList:', killDataList); // Add this line to log the killDataList
+	jsonSaveData =  JSON.stringify(killDataList);
+	debugger;
+	localStorage.setItem('killTracker', jsonSaveData);
+  }
+  
+
+  window.addEventListener('beforeunload', () => {
+	console.log('killDataList before saving:', killDataList); // Add this line
+	saveData('killTracker', killDataList);
+  });
+	
 
 
 function loadShipData() {
@@ -13,9 +30,10 @@ function loadShipData() {
 		.then(response => response.json())
 		.then(data => {
 			shipData = data;
-			//console.log('Ship data loaded:', shipData);
+			console.log('Ship data loaded:', shipData);
 
 			// You can call any functions that depend on shipData here
+
 		})
 		.catch(error => {
 			console.error('Error fetching ship data:', error);
@@ -28,7 +46,7 @@ function loadShipData() {
 function addCardListener()
 {
 	cardContainer = document.getElementById("card-container");
-cardContainer.addEventListener("wheel", (event) => {
+     cardContainer.addEventListener("wheel", (event) => {
   const currentFontSize = parseFloat(window.getComputedStyle(cardContainer).fontSize);
   let newFontSize;
 
@@ -58,8 +76,8 @@ socket.on('disconnect', () => {
 socket.on('new_kill', (killData) => {
 	if ((killData.eventType === 'Bounty') || (killData.eventType === 'PVPKill')) {
 
-		killData.shipName = getGetShipNamefromShidId(killData.shipType);
-		killData.shipImageFileName = getGetShipFileNamefromShidId(killData.shipType);
+		killData.shipName = getShipNamefromShidId(killData.shipType);
+		//killData.shipImageFileName = getShipFileNamefromShidId(killData.shipType);
 	} else if (killData.eventType === 'FactionKillBond') {
 		killData.shipName = '';
 		killData.shipType = ''
@@ -90,7 +108,7 @@ function generateRandomRow() {
 	// Select a random ship ID
 	const randomShipId = shipIds[Math.floor(Math.random() * shipIds.length)];
 
-	const eventTypes = ["Bounty", "PVPKill", "FactionKillBond"];
+	const eventTypes = ["Bounty",  "FactionKillBond"];
 	const factions = ["Federation", "Empire", "Alliance", "Independent"];
 
 	let randomEventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
@@ -200,18 +218,18 @@ function getShipName(shipId) {
 	}
 	return null;
 }
-
-
+		
 function getShipFileNameFromShipName(shipName) {
-	//console.log ('Retrieving ship image file name for ship name:', shipName);
+	console.log ('Retrieving ship image file name for ship name:', shipName);
 	for (const key in shipData) {
 		if (shipData[key].name === shipName) {
-			return 'static/images/' + shipData[key].image_filename;
+			result =  'static/images/' + shipData[key].image_filename;
+			return result;
 		}
 	}
 }
 
-function getGetShipFileNamefromShidId(shipId) {
+function getShipFileNamefromShidId(shipId) {
 	//console.log('Retrieving ship image file name for ship ID:', shipId);
 
 	for (const key in shipData) {
@@ -223,7 +241,7 @@ function getGetShipFileNamefromShidId(shipId) {
 	return null;
 }
 
-function getGetShipNamefromShidId(shipId) {
+function getShipNamefromShidId(shipId) {
 	//console.log('Retrieving ship name for ship ID:', shipId);
 	for (const key in shipData) {
 		if (shipData[key].id === shipId) {
@@ -234,10 +252,13 @@ function getGetShipNamefromShidId(shipId) {
 	return 'Not Found: ' + shipId;
 }
 
-function addKillTableRow(rowData) {
+function addKillTableRow(killData) {
 	// Get the kills table body
 	let killsTableBody = document.getElementById("killsTable").getElementsByTagName("tbody")[0];
 
+
+  // Add the killData to the killDataList array
+    killDataList.push(killData);
 
 	// Create a new row and cells
 	let newRow = killsTableBody.insertRow(-1);
@@ -249,25 +270,25 @@ function addKillTableRow(rowData) {
 	let cell6 = newRow.insertCell(4);
 
 	// Add the row data to the cells
-	cell1.innerHTML = rowData.timestamp;
-	cell2.innerHTML = rowData.shipName;
+	cell1.innerHTML = killData.timestamp;
+	cell2.innerHTML = killData.shipName;
 	//cell3.innerHTML = rowData.faction;
 	//let factionCell = row.insertCell(3);
 	//let rewardsText = rowData.Rewards.map(reward => `${reward.Faction}: ${reward.Reward.toLocaleString()}`).join(', ');
 
-	if ( rowData.eventType === 'FactionKillBond') {
-		cell3.textContent = rowData.AwardingFaction;
+	if ( killData.eventType === 'FactionKillBond') {
+		cell3.textContent = killData.AwardingFaction;
 
 	} else {
 
-	     if (rowData.Rewards.length !== 0)  {
-		   let rewardsText = rowData.Rewards.map(reward => `${reward.Faction}: ${reward.Reward}`).join(', ');
+	     if (killData.Rewards.length !== 0)  {
+		   let rewardsText = killData.Rewards.map(reward => `${reward.Faction}: ${reward.Reward}`).join(', ');
 		   cell3.textContent = rewardsText;
 	    }
     }
-	cell4.innerHTML = rowData.eventType;
-	cell5.innerHTML = rowData.bountyAmount;
-	cell6.innerHTML = rowData.VictimFaction;
+	cell4.innerHTML = killData.eventType;
+	cell5.innerHTML = killData.bountyAmount;
+	cell6.innerHTML = killData.VictimFaction;
 
 
 	// Scroll the kills table to the bottom
@@ -275,30 +296,29 @@ function addKillTableRow(rowData) {
 	killsTableWrapper.scrollTop = killsTableWrapper.scrollHeight;
 
 	//
-	updateSummaryTables(rowData);
+	updateSummaryTables(killData);
 	renderTable();
 }
 
-function updateSummaryTables(rowData) {
+function updateSummaryTables(killData) {
 	//updateNestedTable('factionBounties', kill_data.faction, kill_data.bountyAmount);
-	if ( rowData.eventType === 'FactionKillBond') {
-		updateNestedTable('factionBounties', rowData.AwardingFaction, rowData.bountyAmount);
+	if ( killData.eventType === 'FactionKillBond') {
+		updateNestedTable('factionBounties', killData.AwardingFaction, killData.bountyAmount);
 
 	} else {
 
-	if ((rowData.Rewards.length !== 0) && (rowData.eventType !== 'FactionKillBond')) {
+	if ((killData.Rewards.length !== 0) && (killData.eventType !== 'FactionKillBond')) {
 
-		for (const reward of rowData.Rewards) {
+		for (const reward of killData.Rewards) {
 			updateNestedTable('factionBounties', reward.Faction, reward.Reward);
 		}
 	}
 }
 	// only update NestedTable if the shipName is not empty
-	if (rowData.shipName != '') {
-		updateNestedTable('shipTypeBounties', rowData.shipName, rowData.bountyAmount);
+	if (killData.shipName != '') {
+		updateNestedTable('shipTypeBounties', killData.shipName, killData.bountyAmount);
 	}
-	updateNestedTable('eventTypeBounties', rowData.eventType, rowData.bountyAmount);
-	loadShipData(); // TODO remove this loader
+	updateNestedTable('eventTypeBounties', killData.eventType, killData.bountyAmount);
 	updateShipTypeBountiesGrid();
 }
 
@@ -410,39 +430,6 @@ function sortTable(tableId, columnIndex, keepExistingSortOrder = false) {
 
 }
 
-
-/* function sortTable(tableId, columnIndex) {
-	let table = document.getElementById(tableId);
-	let rows = Array.from(table.rows);
-
-	// Remove the header and footer rows
-	let header = rows.shift();
-	let footer = rows.pop();
-
-	// Sort the remaining rows based on the selected column
-	rows.sort((a, b) => {
-		let aValue = a.cells[columnIndex].innerText;
-		let bValue = b.cells[columnIndex].innerText;
-
-		if (!isNaN(aValue) && !isNaN(bValue)) {
-			return parseInt(aValue) - parseInt(bValue);
-		} else {
-			return aValue.localeCompare(bValue);
-		}
-	});
-
-	// Rebuild the table with the sorted rows
-	table.innerHTML = '';
-	table.appendChild(header);
-	for (let row of rows) {
-		table.appendChild(row);
-	}
-	table.appendChild(footer);
-} */
-
-
-
-
 function updateKillData(killData) {
 	// Update the kills table
 	updateKillsTable(killData);
@@ -528,12 +515,11 @@ function updateShipTypeBountiesGrid() {
 			shipType: row.cells[0].innerText,
 			bounty: parseInt(row.cells[1].innerText, 10),
 			kills: parseInt(row.cells[2].innerText, 10),
-			shipFileName: getShipFileNameFromShipName(row.cells[0].innerText),
+			shipFileName: row.cells[0].innerText,
 			shipName: row.cells[0].innerText
 		});
-
 	}
-
+    
 	// Apply sorting based on the sortMode
 	data.sort((a, b) => {
 		switch (sortMode) {
@@ -579,7 +565,8 @@ function updateShipTypeBountiesGrid() {
 		cardImage.className = "card-image";
 
 		const image = document.createElement("img");
-		image.src = item.shipFileName;
+		item.shipFilename = getShipFileNameFromShipName(item.shipFileName);
+		image.src = item.shipFilename;
 		image.alt = "Image";
 
 		cardImage.appendChild(image);
@@ -671,6 +658,54 @@ function setPage(page) {
 	updateKillsTable(killData.slice(start, end));
 }
 
+function clearAllData() {
+	// Clear the data from the localStorage
+	localStorage.removeItem("killDataList");
+  
+	// Clear the data from the killDataList variable
+	killDataList = [];
+  
+	// Clear the data from the tables
+	// Replace "table1", "table2", "table3" with the actual IDs of your tables
+	clearTableData("factionBounties");
+	clearTableData("shipTypeBounties");
+	clearTableData("killsTable");
+	clearTableData("eventTypeBounties");
+  // Clear the grid
+  // Replace "gridContainer" with the actual ID of your grid container
+  	//clearGrid("shipTypeBountiesGrid");
+	// Check if the grid container exists
+    const gridContainer = document.getElementById('shipTypeBountiesGrid');
+    if (gridContainer) {
+        gridContainer.innerHTML = '';
+    }
+}
+
+  
+  
+  function clearTableData(tableId) {
+	const table = document.getElementById(tableId);
+	const tfoot = table.tFoot;
+  
+	// Remove all table rows except the header
+	const rows = Array.from(table.rows);//.filter((row) => row.parentNode.tagName !== "TFOOT");
+	for (let i = rows.length -1; i >= 1; i--) {
+	  table.deleteRow(i);
+	}
+	
+  }
+  
+  function clearGrid(gridContainerId) {
+	const shipGrid = document.getElementById(gridContainerId);
+	// if (shipGrid) exists, remove all grid Items
+    
+	// Remove all child elements from the grid container
+	while (shipGrid.firstChild) {
+		shipGrid.removeChild(shipGrid.firstChild);
+	}
+
+
+  }
 
 function switchLayout(layout) {
 	if (layout === 'mobile') {
@@ -707,6 +742,9 @@ document.getElementById('decreaseFontSize').addEventListener('click', () => {
 	changeFontSize(-1);
 });
 
+document.getElementById("clearDataButton").addEventListener("click", clearAllData);
+
+
 function changeFontSize(delta) {
 	const tables = document.querySelectorAll('table');
 
@@ -741,14 +779,38 @@ function setActiveButton(button) {
 
 
 
+function loadData(key) {
+	const data = localStorage.getItem(key);
+	if (data) {
+	  return JSON.parse(data);
+	}
+	return null;
+  }
+
 // Add event listener for DOMContentLoaded
 document.addEventListener('DOMContentLoaded', function() {
 	// Trigger the default tab to be open initially
 	// document.querySelector('.tablinks').click();
 	// Call the function to load the ship data
-	loadShipData();
+
+	//fetchDataAndRenderImages;
 
 	// Set the initial active button
+
+		// Your code to be executed after waiting 100ms
+	  setTimeout(() => {
+
+	const savedData = loadData('killTracker');
+	if (savedData.length !== 0) {
+		SavedkillDataList = savedData;
+		SavedkillDataList.forEach((killData) => {
+		  addKillTableRow(killData);
+		});	  
+
+	}
+
+}, 100);
+
 	setActiveButton(desktopButton);
 
 })

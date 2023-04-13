@@ -53,8 +53,8 @@ tr:nth-child(even) {
 .grid-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 1rem;
-  padding: 1rem;
+  gap: 0.1 rem;
+  padding: 0.1 rem;
 }
 
 .cards {
@@ -67,16 +67,16 @@ tr:nth-child(even) {
 .grid-item {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: left;
   background-color: black;
-  padding: 1rem;
-  border-radius: 2px;
+  padding: 0.1rem;
+  border-radius: `px;
   max-height: 300px;
 }
 
 .image-caption {
   text-align: center;
-  margin-top: 0.5rem;
+  margin-top: 0.2 rem;
   color: #f0a;
 }
 .card {
@@ -86,23 +86,24 @@ tr:nth-child(even) {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 150px;
+  max-width: 170px;
   font-family: Roboto, sans-serif;
 }
 
 .card-image {
   flex: 1;
   overflow: hidden;
-  padding: 1px
-  width: auto;
-  height: autp;
-  object-fit: cover;
-  background-color:rgb(27, 26, 26)
-  
+  padding: 1px;
+  width: 100%;
+  height: 70%;
+  object-fit:  cover;
+  background-color:rgb(27, 26, 26);
+  background-position: top left;
+  background-size: auto calc(100% - 20px)
 }
 
 .card-image img {
-  max-width: 120px;
+  max-width:90px;
 }
 
 .card-content {
@@ -113,17 +114,17 @@ tr:nth-child(even) {
 .card-title {
   margin-top: 0;
   margin-bottom: 0px;
-  font-size: 12px;
+  font-size: 10px;
   color: white;
-  line-height :20px
+  line-height :14px
 }
 
 .card-text {
   margin-top: 0;
   margin-bottom: 0;
-  font-size: 12px;
+  font-size: 8px;
   color: #FFA500;
-  line-height :14px
+  line-height :10px
   ;
 }
 
@@ -140,18 +141,18 @@ tr:nth-child(even) {
   background-color: #FFA500; /* Elite */
   border: none;
   color: rgb(43, 41, 41);
-  padding: 2px 2px;
+  padding: 1px 1px;
   text-align: center;
   text-decoration: none;
   display: inline-block;
-  font-size: 10px;
+  font-size: 8px;
 }
 
 .active {
   background-color: #FFA550; /* Elite */
   border: 2 solid;  
   color: rgb(43, 41, 41);
-  padding: 2px 2px;
+  padding: 1px 1px;
   text-align: center;
   text-decoration: none;
   display: inline-block;
