@@ -50,6 +50,7 @@ def create_kill_data(entry, system,station,cmdr):
         'timestamp': entry['timestamp'],
         'eventType': entry['event'],
         'shipType': entry['Target'] if 'Target' in entry else 'Unknown',
+        'shipType': entry['Target'] if 'Target' in entry else 'Unknown',
         'Faction': entry['VictimFaction'] if 'VictimFaction' in entry else 'Unknown',
         'bountyAmount': entry['TotalReward'] if 'TotalReward' in entry else entry['Reward'],
         'AwardingFaction': entry['AwardingFaction'] if 'AwardingFaction' in entry else 'Unknown',
@@ -73,7 +74,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     if LOGGING_ENABLED:
            #logging.info(f'Detected event: {entry["event"]}')
            logging.info(entry)
-    if entry['event'] in ['Bounty', 'FactionKillBond']:
+    if entry['event'] in ['Bounty', 'FactionKillBond', 'ShipTargeted']:
        kill_data = create_kill_data(entry,system,station,cmdr)
        send_kill_data(kill_data)
 
