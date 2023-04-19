@@ -291,7 +291,7 @@ function GenerateRandomSpeech(event, shipname)
 
 
 
-function speakText(speechText) {
+function speakTexttext) {
 	//const text = 'High Value ' + shipType + 'Targeted';
 	
 	// Check if the browser supports the Web Speech API
@@ -342,7 +342,7 @@ function removeTargetedShip(killData) {
   );
 
   if (index !== -1) {
-		speakText(GenerateRandomSpeech('Kill',ship.Ship));
+		speakText(GenerateRandomSpeech('Kill',killData.ShipName));
     targeted_ships.splice(index, 1);
 		console.log("Removed:{killData.shipName}  from targeted_ships");		
 		
