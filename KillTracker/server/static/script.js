@@ -291,7 +291,7 @@ function GenerateRandomSpeech(event, shipname)
 
 
 
-function speakTexttext) {
+function speakText(text) {
 	//const text = 'High Value ' + shipType + 'Targeted';
 	
 	// Check if the browser supports the Web Speech API
