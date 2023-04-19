@@ -3,8 +3,9 @@ const socket = io.connect('http://' + document.domain + ':' + location.port);
 let sortMode = 'shipType';
 let shipData = null;
 let killDataList = [];
+let targeted_ships = [];
 
-loadShipData();
+//loadShipData();
 
 const mobileButton = document.getElementById("mobileButton");
 const desktopButton = document.getElementById("desktopButton");
@@ -12,7 +13,6 @@ const desktopButton = document.getElementById("desktopButton");
 function saveData(key, data) {
 	console.log('Saving killDataList:', killDataList); // Add this line to log the killDataList
 	jsonSaveData =  JSON.stringify(killDataList);
-	debugger;
 	localStorage.setItem('killTracker', jsonSaveData);
   }
   
@@ -22,8 +22,6 @@ function saveData(key, data) {
 	saveData('killTracker', killDataList);
   });
 	
-
-
 function loadShipData() {
 	// Fetch the JSON data from the file and store it in memory
 	fetch('static/ship_data.json')
@@ -39,9 +37,6 @@ function loadShipData() {
 			console.error('Error fetching ship data:', error);
 		});
 }
-
-
-
 
 function addCardListener()
 {
@@ -73,23 +68,79 @@ socket.on('disconnect', () => {
 	console.log('Disconnected from the server.');
 });
 
+
+function sentenceCase (str) {
+	if ((str===null) || (str===''))
+			return false;
+	else
+	str = str.toString();
+	 
+	str =  str.replace(/\w\S*/g,	function(txt){return txt.charAt(0).toUpperCase() +			txt.substr(1).toLowerCase();})
+
+  str =  str.replace("Iv","IV").replace("Iii","III").replace("Ii","II");
+	console.log(str);
+	return str;
+}
+
+     
+
+
+
+
 socket.on('new_kill', (killData) => {
-	if ((killData.eventType === 'Bounty') || (killData.eventType === 'PVPKill')) {
-
-		killData.shipName = getShipNamefromShidId(killData.shipType);
-		//killData.shipImageFileName = getShipFileNamefromShidId(killData.shipType);
-	} else if (killData.eventType === 'FactionKillBond') {
-		killData.shipName = '';
-		killData.shipType = ''
-		killData.shipImageFileName = '';
-	}
-	console.log('New kill data received:', killData);
-
+	
+	killData.eventType = killData.event;
 	const label = document.getElementById('status');
-	label.textContent = `Cmdr ${killData.Cmdr}: ${killData.System} ${killData.Station}`;
+	label.textContent = `Cmdr ${killData.cmdr}: ${killData.system} ${killData.station}`;
+
+
+	if ((killData.eventType === 'Bounty')) {		
+    //killData.shipType = killData.Ship;
+		//killData.Ship = killData.Target;
+		//killData.shipName = sentenceCase(killData.Target_Localised);
+    killData.shipName = killData.Ship;
+		killData.Faction = killData.VictimFaction;
+
+		killData.shipImageFileName = killData.shipName.replace(/-/gi,"",).replace(/ /gi,"-");
+		//killData.shipName = getShipNamefromShidId(killData.shipType);
+
+		//killData.shipImageFileName = getShipFileNamefromShidId(killData.shipType);
+		addKillTableRow(killData);
+		removeTargetedShip(killData);
+		//console.log('New kill data received:', killData);
+
+
+	} 
+	
+	if (killData.eventType === 'FactionKillBond') {
+		killData.shipName = '';
+		//killData.shipType = ''
+		//killData.shipImageFileName = '';
+		addKillTableRow(killData);
+		//removeTargetedShip(killData);
+
+	}
+	
+	if (killData.eventType === 'ShipTargeted') {
+		//{"timestamp": "2023-04-13T14:44:28Z", "event": "ShipTargeted", "TargetLocked": "True", "Ship": "asp_scout", "Ship_Localised": "Asp Scout", "ScanStage": 3, "PilotName": "$npc_name_decorate:#name=Jub Rothwell;", "PilotName_Localised": "Jub Rothwell", "PilotRank": "Elite", "ShieldHealth": 29.092308, "HullHealth": 29.302767, "Faction": "HIP 16477 Partnership", "LegalStatus": "Wanted", "Bounty": 558100}
+		//if ((killData.Ship_Localised === undefined) || (killData.Ship_Localised ===0)) {
+			//killData.Ship_Localised = sentenceCase(killData.Ship); 
+			//(killData.Ship_Localised = getShipNamefromShidId(killData.Ship));
+		//}
+		//killData.shipName = killData.Ship_Localised;
+		//killData.shipType = killData.Ship;
+		killData.shipImageFileName = '';
+		//killData.bountyAmount = killData.Bounty;
+		killData.Faction = killData.VictimFaction;
+		killData.VictimFaction = `${killData.PilotName}: (${killData.PilotRank})`;
+		//addKillTableRow(killData);	
+		if (killData.bountyAmount > 200000) {
+	  	 addTargetedShip(killData);
+		}
+	}
+
 
 	//label.textAlign = textAlign.end
-	addKillTableRow(killData);
 	//killDataList.push(killData);
 	//updateSummaryTables(killData);
 	// Reapply the sorting based on the last sorted column index and sortOrder for each table
@@ -98,6 +149,242 @@ Object.keys(tableSortInfo).forEach(tableId => {
   sortTable(tableId, lastSortedColumnIndex, true);
 });
 });
+
+
+socket.on('new_test', (TestData) => {
+	//debugger;
+	//killData = JSON.parse(TestData);
+	killData = TestData;
+	killData.eventType = killData.event;
+	if ((killData.eventType === 'Bounty') || (killData.eventType === 'PVPKill')) {
+		killData.shipName = getShipNamefromShidId(killData.Target);		
+		killData.bountyAmount = killData.TotalReward;
+		//debugger;
+
+	} 
+	if (killData.eventType === 'FactionKillBond') {
+		killData.shipName = '';
+		killData.shipType = ''
+		killData.shipImageFileName = '';
+	}
+	
+	if (killData.eventType === 'ShipTargeted') {
+		//{"timestamp": "2023-04-13T14:44:28Z", "event": "ShipTargeted", "TargetLocked": "True", "Ship": "asp_scout", "Ship_Localised": "Asp Scout", "ScanStage": 3, "PilotName": "$npc_name_decorate:#name=Jub Rothwell;", "PilotName_Localised": "Jub Rothwell", "PilotRank": "Elite", "ShieldHealth": 29.092308, "HullHealth": 29.302767, "Faction": "HIP 16477 Partnership", "LegalStatus": "Wanted", "Bounty": 558100}
+		if (killData.Ship_Localised === 'undefined') {
+		    killData.Ship_Localised = sentencecase(killData.Ship);
+		}
+		killData.shipName = killData.Ship_Localised;
+		killData.shipType = killData.Ship;
+		killData.shipImageFileName = '';
+		killData.bountyAmount = killData.Bounty;
+		killData.VictimFaction = `${killData.PilotName_Localised}: (${killData.PilotRank})`;
+		killData.Faction = killData.Faction;
+		//addKillTableRow(killData);	
+	  addTargetedShip(killData);
+	}
+
+
+	if ((killData.eventType === 'Bounty') || (killData.eventType === 'FactionKillBond')) {
+
+
+	  const label = document.getElementById('status');
+	  label.textContent = `Cmdr ${killData.Cmdr}: ${killData.System} ${killData.Station}`;
+
+	//label.textAlign = textAlign.end
+
+	  addKillTableRow(killData);
+		removeTargetedShip(killData);
+	
+	// Reapply the sorting based on the last sorted column index and sortOrder for each table
+Object.keys(tableSortInfo).forEach(tableId => {
+  const { lastSortedColumnIndex } = tableSortInfo[tableId];
+  sortTable(tableId, lastSortedColumnIndex, true);
+});
+}
+}
+);
+
+
+function addTargetedShip(killData) {
+  // Check if the ship has already been targeted
+	
+	const index = targeted_ships.findIndex(
+    (ship) =>
+      ship.Ship === killData.Ship &&
+      //ship.Faction === killData.Faction &&
+			//ship.VictimFaction === killData.VictimFaction &&
+      ship.bountyAmount <= killData.bountyAmount
+  );
+  
+
+
+  if (index === -1) {
+    // Add the targeted ship if it is not already in the list
+    targeted_ships.push(killData);		
+		if (killData.amountBounty > 1000000) {			
+			speakText(GenerateRandomSpeech('ShipTargetedSuperRich',killData.Ship));
+		} else {
+			speakText(GenerateRandomSpeech('ShipTargeted',killData.Ship));
+		}
+    // Sort the list by descending bounty order
+    targeted_ships.sort((a, b) => b.bountyAmount - a.bountyAmount);
+
+    // Keep only the top 10 highest value ships
+    if (targeted_ships.length > 10) {
+      targeted_ships.pop();
+    }
+		RenderShipsTargettedTable()
+  } else {
+		// Update the bounty amount if the ship is already in the list
+			targeted_ships[index].bountyAmount = killData.bountyAmount;
+			targeted_ships[index].Faction === killData.Faction &&
+			targeted_ships[index].VictimFaction === killData.VictimFaction &&
+			RenderShipsTargettedTable()
+			speakText(GenerateRandomSpeech('KWS',ship.Ship));
+	}
+	setInterval(removeOldTargetedShips, 60 * 1000); // Call the function every minute
+	
+
+	
+}
+
+setInterval(removeOldTargetedShips, 60 * 1000); // Call the function every minute
+
+function GenerateRandomSpeech(event, shipname)
+{
+	if (event == 'ShipTargetedSuperRich') {
+		var textArray = [
+			'Spotted a high value' + shipname,
+			'Milionare ' + shipname + ' targetted',			
+			'Kerching'
+	];
+	}
+
+	if (event == 'ShipTargeted') {
+		var textArray = [
+			'Spotted a ' + shipname,
+			'High value ' + shipname + ' targetted',			
+	];
+	}
+
+	if (event == 'KWS') {
+		var textArray = [
+			'More people looking for that ' + shipname,
+			shipname + ' bounty went up',						
+	];
+	}
+
+	if (event == 'Kill') {
+		var textArray = [
+			'Hope there was insurance on that ' + shipname,
+			shipname + ' is toast',			
+	];
+	}
+
+	var randomNumber = Math.floor(Math.random()*textArray.length);
+	
+
+
+	return textArray[randomNumber];
+
+}
+
+
+
+function speakText(speechText) {
+	//const text = 'High Value ' + shipType + 'Targeted';
+	
+	// Check if the browser supports the Web Speech API
+	if ('speechSynthesis' in window) {
+			const speech = new SpeechSynthesisUtterance(text);
+			window.speechSynthesis.cancel()
+			speech.lang = 'en-US';
+			speech.rate = 2;
+			speech.volume = 1;
+			
+			window.speechSynthesis.speak(speech);
+	} else {
+			console.log('Sorry, your browser does not support the Web Speech API.');
+	}
+}
+
+
+function removeOldTargetedShips() {
+	const now = new Date();
+	const timeLimit = 10 * 60 * 1000; // 15 minutes in milliseconds
+
+	targeted_ships =  targeted_ships.filter((ship) => {
+			const shipTimestamp = new Date(ship.timestamp);
+			const timeDifference = now - shipTimestamp;
+			return timeDifference <= timeLimit;
+	});
+	RenderShipsTargettedTable();
+}
+
+function WipeShipTargettedTable() {
+	let ShipsTargettedTableBody = document.getElementById("ShipsTargettedTable").getElementsByTagName("tbody")[0];
+	ShipsTargettedTableBody.innerHTML = '';
+	targeted_ships = [];
+	RenderShipsTargettedTable();
+}
+
+
+function removeTargetedShip(killData) {
+	//check if bounty == 1283031 then break into debugger
+  //if ( killData.bountyAmount == 1107000) {
+	//debugger;
+	//}
+	const index = targeted_ships.findIndex(
+    (ship) =>		  
+      ship.Ship === killData.Ship &&
+			ship.Faction === killData.Faction &&
+			killData.bountyAmount - ship.bountyAmount < 10000
+  );
+
+  if (index !== -1) {
+		speakText(GenerateRandomSpeech('Kill',ship.Ship));
+    targeted_ships.splice(index, 1);
+		console.log("Removed:{killData.shipName}  from targeted_ships");		
+		
+  }
+	RenderShipsTargettedTable();
+}
+
+
+function RenderShipsTargettedTable() {
+	// Get the ShipsTargetted table body
+	let ShipsTargettedTableBody = document.getElementById("ShipsTargettedTable").getElementsByTagName("tbody")[0];
+	ShipsTargettedTableBody.innerHTML = '';
+	
+  // loop through ships targetted list and add to ShipsTargettedTableBody
+  targeted_ships.forEach((ship) => {
+    
+		let newRow = ShipsTargettedTableBody.insertRow(-1);
+		let cell1 = newRow.insertCell(0);
+		let cell2 = newRow.insertCell(1);
+		let cell3 = newRow.insertCell(2);
+		let cell4 = newRow.insertCell(3);
+		cell1.innerHTML = ship.Faction;
+		cell2.innerHTML = ship.Ship;
+   	cell3.textContent = ship.VictimFaction;
+	  cell4.innerHTML = ship.bountyAmount;
+		
+		
+			// Scroll the kills table to the bottom
+			//let killsTableWrapper = document.getElementById("killsTableWrapper");
+			//killsTableWrapper.scrollTop = killsTableWrapper.scrollHeight;
+		
+			//
+		 
+	})
+
+}
+
+
+
+
+
+
 
 
 
@@ -220,7 +507,7 @@ function getShipName(shipId) {
 }
 		
 function getShipFileNameFromShipName(shipName) {
-	console.log ('Retrieving ship image file name for ship name:', shipName);
+	//console.log ('Retrieving ship image file name for ship name:', shipName);
 	for (const key in shipData) {
 		if (shipData[key].name === shipName) {
 			result =  'static/images/' + shipData[key].image_filename;
@@ -275,17 +562,23 @@ function addKillTableRow(killData) {
 	//cell3.innerHTML = rowData.faction;
 	//let factionCell = row.insertCell(3);
 	//let rewardsText = rowData.Rewards.map(reward => `${reward.Faction}: ${reward.Reward.toLocaleString()}`).join(', ');
-
+    //debugger;
 	if ( killData.eventType === 'FactionKillBond') {
 		cell3.textContent = killData.AwardingFaction;
 
-	} else {
+	}
+	if ( killData.eventType === 'Bounty'){
 
 	     if (killData.Rewards.length !== 0)  {
 		   let rewardsText = killData.Rewards.map(reward => `${reward.Faction}: ${reward.Reward}`).join(', ');
 		   cell3.textContent = rewardsText;
 	    }
     }
+
+ 
+
+	
+
 	cell4.innerHTML = killData.eventType;
 	cell5.innerHTML = killData.bountyAmount;
 	cell6.innerHTML = killData.VictimFaction;
@@ -296,7 +589,10 @@ function addKillTableRow(killData) {
 	killsTableWrapper.scrollTop = killsTableWrapper.scrollHeight;
 
 	//
-	updateSummaryTables(killData);
+   
+	if ( killData.eventType !== 'ShipTargeted'){
+	  updateSummaryTables(killData);
+	}
 	renderTable();
 }
 
@@ -315,7 +611,7 @@ function updateSummaryTables(killData) {
 	}
 }
 	// only update NestedTable if the shipName is not empty
-	if (killData.shipName != '') {
+	if ((killData.shipName != '') && (killData.eventType === 'Bounty' )) {
 		updateNestedTable('shipTypeBounties', killData.shipName, killData.bountyAmount);
 	}
 	updateNestedTable('eventTypeBounties', killData.eventType, killData.bountyAmount);
@@ -466,9 +762,9 @@ function BrokenupdateShipTypeBountiesGrid(killData) {
 	// Check if the ship type is already in the grid
 	let shipTypeFound = false;
 	for (const item of shipTypeSummary) {
-		if (item.shipType === killData.shipType) {
+		if (item.Ship === killData.Ship) {
 			shipTypeFound = true;
-			item.bounty += killData.bounty;
+			item.amountBounty += killData.bountyAmount;
 			item.kills += 1;
 			break;
 		}
@@ -477,14 +773,14 @@ function BrokenupdateShipTypeBountiesGrid(killData) {
 	// If the ship type is not in the grid, add a new entry
 	if (!shipTypeFound) {
 		shipTypeSummary.push({
-			shipType: killData.shipType,
-			bounty: killData.bounty,
+			Ship: killData.Ship,
+			bountyAmount: killData.bountyAmount,
 			kills: 1,
 		});
 	}
 
 	// Sort the ship type summary data by descending bounty
-	shipTypeSummary.sort((a, b) => b.bounty - a.bounty);
+	shipTypeSummary.sort((a, b) => b.bountyAmount - a.bountyAmount);
 
 	// Clear the current grid content
 	let shipTypeBountiesGrid = document.getElementById('shipTypeBountiesGrid');
@@ -512,8 +808,8 @@ function updateShipTypeBountiesGrid() {
 	for (let i = 1; i < shipTypeBountiesTable.rows.length - 1; i++) {
 		const row = shipTypeBountiesTable.rows[i];
 		data.push({
-			shipType: row.cells[0].innerText,
-			bounty: parseInt(row.cells[1].innerText, 10),
+			Ship: row.cells[0].innerText,
+			bountyAmount: parseInt(row.cells[1].innerText, 10),
 			kills: parseInt(row.cells[2].innerText, 10),
 			shipFileName: row.cells[0].innerText,
 			shipName: row.cells[0].innerText
@@ -524,11 +820,11 @@ function updateShipTypeBountiesGrid() {
 	data.sort((a, b) => {
 		switch (sortMode) {
 			case 'shipType':
-				return a.shipType.localeCompare(b.shipType);
+				return a.Ship.localeCompare(b.Ship);
 			case 'kills':
 				return b.kills - a.kills;
 			case 'bounty':
-				return b.bounty - a.bounty;
+				return b.bountyAmount - a.bountyAmount;
 		}
 	});
 
@@ -539,8 +835,9 @@ function updateShipTypeBountiesGrid() {
 
 		//const snakeName = item.shipType.replace(/\s+/g, '-').toLowerCase();	     
 		//const shipName = getShipName(item.shipType)
-		//const shipFileName = getShipFileName(item.shipType)
-		let bountyValue = item.bounty + ' credits';
+		shipFileName = 'static/images/' + item.shipName.replaceAll(" ","-").replaceAll("_","-").toLowerCase() + '.png';
+		
+		let bountyValue = item.bountyAmount + ' credits';
 		let numKills = item.kills + ' kill(s)'
 		//console.log(item.shipName);
 
@@ -565,8 +862,8 @@ function updateShipTypeBountiesGrid() {
 		cardImage.className = "card-image";
 
 		const image = document.createElement("img");
-		item.shipFilename = getShipFileNameFromShipName(item.shipFileName);
-		image.src = item.shipFilename;
+		//item.shipFilename = getShipFileNameFromShipName(item.shipFileName);
+		image.src =  shipFileName;
 		image.alt = "Image";
 
 		cardImage.appendChild(image);
@@ -578,7 +875,7 @@ function updateShipTypeBountiesGrid() {
 
 		const title = document.createElement("h3");
 		title.className = "card-title";
-		title.textContent = item.shipName;
+		title.textContent = item.Ship;
 
 		const text = document.createElement("p");
 		text.className = "card-text";
@@ -804,7 +1101,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	if (savedData.length !== 0) {
 		SavedkillDataList = savedData;
 		SavedkillDataList.forEach((killData) => {
-		  addKillTableRow(killData);
+		  //addKillTableRow(killData);
 		});	  
 
 	}

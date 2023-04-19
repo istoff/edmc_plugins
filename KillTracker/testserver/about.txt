@@ -1,0 +1,1 @@
+{"timestamp": "2023-04-13T14:25:29Z", "event": "Bounty", "Rewards": [{"Faction" : "NULL", "Reward" : 224752}], "Target": "diamondbackxl", "Target_Localised": "Diamondback Explorer", "TotalReward": 224752, "VictimFaction": "LTT 4961 Jet Drug Empire"}

@@ -23,6 +23,15 @@ def update_kills():
     return jsonify({'success': True, 'data': kill_data})
 
 
+@app.route('/new_test', methods=['POST'])
+def update_test():
+    kill_data = request.json
+    print (kill_data)
+    socketio.emit('new_test', kill_data)
+    return jsonify({'success': True, 'data': kill_data})
+
+
+
 if __name__ == '__main__':
     if localhost:
         socketio.run(app, host='127.0.0.1', port=5050, debug=True)

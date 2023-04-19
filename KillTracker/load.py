@@ -47,36 +47,111 @@ def test_http_post():
 
 def create_kill_data(entry, system,station,cmdr):
     return {
+         'system': system,
+	 'station': station,
+	 'cmdr': cmdr,
+	 'entry': entry,
         'timestamp': entry['timestamp'],
+	'event': entry['event'],
         'eventType': entry['event'],
-        'shipType': entry['Target'] if 'Target' in entry else 'Unknown',
-        'shipType': entry['Target'] if 'Target' in entry else 'Unknown',
+        'shipType': entry['Target'] if 'Target' in entry else entry['Ship_Localised'] if 'Ship_Localised' in entry else 'Unknown',
         'Faction': entry['VictimFaction'] if 'VictimFaction' in entry else 'Unknown',
-        'bountyAmount': entry['TotalReward'] if 'TotalReward' in entry else entry['Reward'],
+        'bountyAmount': entry['TotalReward'] if 'TotalReward' in entry else 0,
         'AwardingFaction': entry['AwardingFaction'] if 'AwardingFaction' in entry else 'Unknown',
         'VictimFaction': entry['VictimFaction'] if 'VictimFaction' in entry else 'Unknown',
         'Rewards': entry['Rewards'] if 'Rewards' in entry else 0,
         'System': system if system is not None else '',
         'Station': station if station is not None else '',
-        'Cmdr': cmdr if cmdr is not None else ''
+        'Cmdr': cmdr if cmdr is not None else '',
+	'Ship': entry['Ship'] if 'Ship' in entry else 0,
+	'Ship_Localised': entry['Ship_Localised'] if 'Ship_Localised' in entry else 0,
+	'shipName': entry['Ship_Localised'] if 'Ship_Localised' in entry else 0,
+	'Bounty': entry['Bounty'] if 'Bounty' in entry else 0,
+	'PilotName': entry['PilotName'] if 'PilotName' in entry else '',
+	'LegalStatus': entry['LegalStatus'] if 'LegalStatus' in entry else '',
+	'Faction': entry['Faction'] if 'Faction' in entry else '',
+	'PilotRank': entry['PilotRank'] if 'PilotRank' in entry else '',
+	'PilotName_Localised': entry['PilotName_Localised'] if 'PilotName_Localised' in entry else '',
+	'Target': entry['Target'] if 'Target' in entry else '',
+	'Target_Localised': entry['Target_Localised'] if 'Target_Localised' in entry else ''
     }
+
+def create_bounty_data(entry, system, station, cmdr):
+    return {
+        'system': system,
+	    'station': station,
+	    'cmdr': cmdr,
+        'event': 'Bounty',
+        'timestamp': entry['timestamp'],
+        'Ship' : entry['Target_Localised'] if 'Target_Localised' in entry else entry['Target'].title(),
+        'bountyAmount' :  entry['TotalReward'] if 'TotalReward' in entry else 0,
+        'Rewards' : entry['Rewards'] if 'Rewards' in entry else 0,
+        'VictimFaction': entry['VictimFaction'] if 'VictimFaction' in entry else 'Unknown'
+    }
+
+
+def create_factionkillbond_data(entry, system, station, cmdr):
+    return {
+        'system': system,
+	    'station': station,
+	    'cmdr': cmdr,
+        'event': 'FactionKillBond',
+        'timestamp': entry['timestamp'],
+        'bountyAmount' : entry['Reward'] if 'Reward' in entry else 0,
+        'VictimFaction': entry['VictimFaction'] if 'VictimFaction' in entry else 'Unknown',
+        'AwardingFaction': entry['AwardingFaction'] if 'AwardingFaction' in entry else 'Unknown',
+    }
+
+def create_shiptargeted_data(entry, system,station,cmdr):
+    return {
+        'system': system,
+	    'station': station,
+	    'cmdr': cmdr,
+        'event': 'ShipTargeted',
+        'timestamp': entry['timestamp'],
+        'Ship' : entry['Ship_Localised'] if 'Ship_Localised' in entry else entry['Ship'].title(),
+        'bountyAmount' : entry['Bounty'] if 'Bounty' in entry else 0,
+        'VictimFaction': entry['Faction'] if 'Faction' in entry else 'Unknown',
+        'PilotName': entry['PilotName_Localised'] if 'PilotName' in entry else '',
+	    'LegalStatus': entry['LegalStatus'] if 'LegalStatus' in entry else '',
+        'PilotRank': entry['PilotRank'] if 'PilotRank' in entry else ''
+    }
+
+
+
+
 
 def plugin_start3(plugin_dir: str) -> Tuple[str, str, str]:
     LOGGING_ENABLED = config.get_bool("KillsTracker_LOG") or False     
     if LOGGING_ENABLED:
         log_file_path = os.path.join(plugin_dir, 'ship_kills_plugin.log')
-        logging.basicConfig(filename=log_file_path, level=logging.DEBUG, format='%(asctime)s [%(levelname)s] %(message)s')
+        logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
     #test_http_post()
     return PLUGIN_NAME
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
+    LOGGING_ENABLED = True
     if LOGGING_ENABLED:
            #logging.info(f'Detected event: {entry["event"]}')
            logging.info(entry)
-    if entry['event'] in ['Bounty', 'FactionKillBond', 'ShipTargeted']:
-       kill_data = create_kill_data(entry,system,station,cmdr)
-       send_kill_data(kill_data)
+    event = entry['event']           
+    if event in ['Bounty', 'FactionKillBond', 'ShipTargeted']:
+       if (event == 'Bounty'):
+           kill_data = create_bounty_data(entry, system, station, cmdr)
+           send_kill_data(kill_data)
+
+       if (event == 'FactionKillBond'):
+           kill_data = create_factionkillbond_data(entry, system, station, cmdr)
+           send_kill_data(kill_data)
+
+       if (event == 'ShipTargeted'):
+           kill_data = create_shiptargeted_data(entry, system, station, cmdr)
+           send_kill_data(kill_data)
+
+
+       #kill_data = create_kill_data(entry,system,station,cmdr)
+       #send_kill_data(kill_data)
 
 def plugin_prefs(parent: nb.Notebook, cmdr: str, is_beta: bool) -> Optional[tk.Frame]:
     frame = nb.Frame(parent)

@@ -48,7 +48,9 @@
     </div>
     <!-- Default layout -->
     <div id="defaultLayout">
-      <div id="killsTablePlaceholder"></div>
+      <Table>
+      <tr><td><div id="killsTablePlaceholder"></td><td><div id="ShipsTargettedPlaceholder"></div></td></div></tr>
+      </Table>
       <div id="gridPlaceholder"></div>
       <div id="summaryTablesPlaceholder"></div>
       
@@ -56,9 +58,9 @@
     <!-- Mobile layout -->
     <div id="mobileLayout" style="display: none;">
       <div id="killsTablePlaceholderMobile" class="tabcontent"></div>
+      <div id="ShipsTargettedPlaceholderMobile" class="tabcontent"></div>
       <div id="gridPlaceholderMobile" class="tabcontent"></div>
-      <div id="summaryTablesPlaceholderMobile" class="tabcontent"></div>
-      
+      <div id="summaryTablesPlaceholderMobile" class="tabcontent"></div>      
     </div>
     <div id="killsTableWrapper">
       <div id="pagePrefs" style="display: block;">
@@ -93,9 +95,28 @@
         <tbody id="killsTableBody"></tbody>
       </table>
     </div>
-        <div id="gridWrapper">
+    <div id="ShipsTargettedTableWrapper" style="vertical-align: top;">
+      <div id="pagePrefs" style="display: block;">
+        <label style="vertical-align: top;">Targetted Ships Nearby:</label>
+        <button class="button" onclick="WipeShipTargettedTable()">Clear All</button>
+        <table id="ShipsTargettedTable" class="sortable">
+          <thead>
+            <tr>
+              <th>Faction</th>
+              <th>Ship</th>
+              <th>Potential Victim</th>
+              <th>Bounty</th>
+            </tr>
+          </thead>
+          <tbody id="ShipsTargettedTableBody"></tbody>
+        </table>
+      </div>
+    <div id="gridWrapper">
       <div class="grid-container" id="shipTypeBountiesGrid"></div>
     </div>
+
+
+
 
     <div id="summaryTablesWrapper">
       <table id="summaryTables">
@@ -142,6 +163,7 @@
     <script>
       // Move tables and grid to the default layout placeholders
       document.getElementById('killsTablePlaceholder').appendChild(document.getElementById('killsTableWrapper'));
+      document.getElementById('ShipsTargettedPlaceholder').appendChild(document.getElementById('ShipsTargettedTableWrapper'));
       document.getElementById('summaryTablesPlaceholder').appendChild(document.getElementById('summaryTablesWrapper'));
       document.getElementById('gridPlaceholder').appendChild(document.getElementById('gridWrapper'));
     </script>
