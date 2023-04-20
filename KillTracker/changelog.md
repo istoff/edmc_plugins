@@ -1,4 +1,16 @@
 ## Changes 
+20 April 2023
+- Big changes
+- Removed dependency on JSON files to translate the mess that is ship names.  Hopefully the ship names are all working now.
+- Cleaned up the plugin and javascript to better handle multiple event types
+- Added ship targetted event.  keeps track of High value kills nearby.  Helps your prioritise
+- Ships added to list if value > 500 000 on first sighting.  Bounty value incremented after KWS
+- Speech events announce some of that.  Haven't put in a toggle yet.
+- Random (x3) for each noted event.  Need to add more
+- Battled with Conflict Zone Kills.  Game doesn't tell you what you've killed.  Tracking the data to see if it can be inferred by the bounty value, but it's so broken
+- Haven't touched PVPKills and ThargoidKills.  Don't know what data is generated.  If some kind soul would enable logging in the plugin, do a bunch of those types of kills and send me the data, I will see what I can do.
+- Todo.  Some interface niggles w.r.t. paging the main Kill List.
+- Add Speech toggle to Plugin Prefs.
 13 April 2023
 - Added persistence.  Kills don't delete after browser refresh.
 - Added button to manually wipe data. Needed due to persistence.
