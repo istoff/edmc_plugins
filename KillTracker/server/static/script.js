@@ -134,7 +134,7 @@ socket.on('new_kill', (killData) => {
 		killData.Faction = killData.VictimFaction;
 		killData.VictimFaction = `${killData.PilotName}: (${killData.PilotRank})`;
 		//addKillTableRow(killData);	
-		if (killData.bountyAmount > 200000) {
+		if (killData.bountyAmount > 500000) {
 	  	 addTargetedShip(killData);
 		}
 	}
@@ -240,7 +240,7 @@ function addTargetedShip(killData) {
 			targeted_ships[index].Faction === killData.Faction &&
 			targeted_ships[index].VictimFaction === killData.VictimFaction &&
 			RenderShipsTargettedTable()
-			speakText(GenerateRandomSpeech('KWS',ship.Ship));
+			speakText(GenerateRandomSpeech('KWS',killData.Ship));
 	}
 	setInterval(removeOldTargetedShips, 60 * 1000); // Call the function every minute
 	
@@ -291,12 +291,12 @@ function GenerateRandomSpeech(event, shipname)
 
 
 
-function speakText(text) {
+function speakText(Text) {
 	//const text = 'High Value ' + shipType + 'Targeted';
 	
 	// Check if the browser supports the Web Speech API
 	if ('speechSynthesis' in window) {
-			const speech = new SpeechSynthesisUtterance(text);
+			const speech = new SpeechSynthesisUtterance(Text);
 			window.speechSynthesis.cancel()
 			speech.lang = 'en-US';
 			speech.rate = 2;
@@ -342,7 +342,7 @@ function removeTargetedShip(killData) {
   );
 
   if (index !== -1) {
-		speakText(GenerateRandomSpeech('Kill',killData.ShipName));
+		speakText(GenerateRandomSpeech('Kill',killData.Ship));
     targeted_ships.splice(index, 1);
 		console.log("Removed:{killData.shipName}  from targeted_ships");		
 		
