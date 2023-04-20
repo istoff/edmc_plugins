@@ -1101,7 +1101,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	if (savedData.length !== 0) {
 		SavedkillDataList = savedData;
 		SavedkillDataList.forEach((killData) => {
-		  //addKillTableRow(killData);
+		  addKillTableRow(killData);
 		});	  
 
 	}
