@@ -36,7 +36,9 @@ def send_kill_data(kill_data):
         response.raise_for_status()
 
         if LOGGING_ENABLED:
-            logging.info('Web call to update kills was successful')
+               #logging.info(f'Detected event: {entry["event"]}')
+            logging.info(kill_data)
+            #logging.info('Web call to update kills was successful')
     except requests.exceptions.RequestException as e:
         if LOGGING_ENABLED:
             logging.error(f'Web call to update kills failed: {str(e)}')
@@ -132,9 +134,9 @@ def plugin_start3(plugin_dir: str) -> Tuple[str, str, str]:
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
     LOGGING_ENABLED = True
-    if LOGGING_ENABLED:
+    #if LOGGING_ENABLED:
            #logging.info(f'Detected event: {entry["event"]}')
-           logging.info(entry)
+           #logging.info(entry)
     event = entry['event']           
     if event in ['Bounty', 'FactionKillBond', 'ShipTargeted']:
        if (event == 'Bounty'):
@@ -148,7 +150,6 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
        if (event == 'ShipTargeted'):
            kill_data = create_shiptargeted_data(entry, system, station, cmdr)
            send_kill_data(kill_data)
-
 
        #kill_data = create_kill_data(entry,system,station,cmdr)
        #send_kill_data(kill_data)

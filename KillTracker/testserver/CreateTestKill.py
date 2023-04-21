@@ -31,7 +31,9 @@ def generate_sample_kill():
 def send_test_data(event):
     url = 'http://127.0.0.1:5050/new_kill'
     headers = {'Content-Type': 'application/json'}
-    response = requests.post(url, data=json.dumps(event), headers=headers)
+    #response = requests.post(url, data=json.dumps(event), headers=headers)
+    print (event)
+    response = requests.post(url, data=event, headers=headers)
 
     if response.status_code == 200:
         print("Data sent successfully.")
@@ -46,11 +48,11 @@ def read_events_from_file(file_path):
 
 
 def process_events(events, interval):
-    for event in events:        
-        if event.find("timestamp") != -1:
+    for full_event in events:        
+        if full_event.find("timestamp") != -1:
           
           #get all characters after character 32
-          event = event[31:]
+          event = full_event[31:]
           #print (event)
           try:
             # Process the event and send it to the server
@@ -73,8 +75,8 @@ def process_events(events, interval):
             if eventType == 'Bounty':
                #modified_str = event.replace("\"Faction\",","\"Faction\":").replace("\"Reward\"," ,"\"Reward\":")
                #modified_str = modified_str.replace("OrderedDict(", "{").replace(")", "}").replace("(", "{")
-               #modified_str = modified_str.replace("[[{}", "[{").replace("[{[{","[{").replace("}]}]","}]").replace("}, {"," , ")
-                send_test_data(jsonEvent)
+               #modified_str = modified_str.replace("[[{}", "[{").replace("[{[{","[{").replace("}]}]","}]").replace("}, {"," , ")                
+                send_test_data(event)
                 time.sleep(interval)
 
 
@@ -83,9 +85,8 @@ def process_events(events, interval):
                     if jsonEvent['ScanStage'] == 3:
                         #print (jsonEvent)
                         if jsonEvent['LegalStatus'] == "Wanted":
-                            if jsonEvent['Bounty'] > 500000:
-                                send_test_data(jsonEvent)
-                                time.sleep(interval)
+                            send_test_data(event)
+                            time.sleep(interval)
 
 
 
@@ -105,7 +106,7 @@ def process_events(events, interval):
 
 
 def main():
-    file_path = 'events.log'
+    file_path = 'ship_kills_plugin.log'
     events = read_events_from_file(file_path)
     interval = 0.2  # Set the interval in seconds
     process_events(events, interval)
