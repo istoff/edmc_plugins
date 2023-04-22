@@ -133,7 +133,7 @@ def plugin_start3(plugin_dir: str) -> Tuple[str, str, str]:
     return PLUGIN_NAME
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
-    LOGGING_ENABLED = True
+    #LOGGING_ENABLED = True
     #if LOGGING_ENABLED:
            #logging.info(f'Detected event: {entry["event"]}')
            #logging.info(entry)
