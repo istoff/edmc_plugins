@@ -98,12 +98,14 @@ python createTestKill.py
 - Desktop / Mobile Mode - Mobile lets you pick one grid to focus on.
 - Some adjusting sizing of fonts for spaceing.
 - Click Grid ships to change sort order
+= Speech.  Companion speech pops up for kills, targetting and kill warrant scans.  Some variety based on rank added.
+- Settings screen reworked tremendously in EDMCPlugin.
 
 ## To-Do
  Android Support? (works via browser)
  Run on different browsers?  Tested on Edge, Brave, Chrome, Samsung Internet
  Different Screen layouts? Kind happy with it.
- Preferences screen for plugin? [started]
+ Preferences screen for plugin? [mostly done]
  Get graphics for other kill types.   Thargoids, Scanners, etc.
  I don't kill traders so I don't know if the other ship types will have working art.  The images are there, but possibly wrong filenames.
  

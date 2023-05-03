@@ -3,45 +3,98 @@ import socket
 import requests
 import json
 import logging
+from theme import theme
 from typing import Tuple
 from typing import Optional
 import tkinter as tk
 from tkinter.ttk import Notebook
 import myNotebook as nb
 from config import config
+from config import appname
 import plug
 from urllib.parse import urlparse
-
+import tkinter.font as tkFont
 
 PLUGIN_NAME = "KillsTracker"
+
 PLUGIN_VERSION = "0.4"
 #TARGET_URL = "http://10.0.0.90"
 #TARGET_PORT = "5050"
 TARGET_PATH = "new_kill"
 #TARGET_URL = "http://10.0.0.90:5050/new_kill"
 
-LOGGING_ENABLED = False # Set to True to enable logging, or False to disable
+## Setup Official Logger Code
+# This could also be returned from plugin_start3()
+plugin_name = os.path.basename(os.path.dirname(__file__))
+
+# A Logger is used per 'found' plugin to make it easy to include the plugin's
+# folder name in the logging output format.
+# NB: plugin_name here *must* be the plugin's folder name as per the preceding
+#     code, else the logger won't be properly set up.
+logger = logging.getLogger(f'{appname}.{plugin_name}')
+
+# If the Logger has handlers then it was already set up by the core code, else
+# it needs setting up here.
+if not logger.hasHandlers():
+    level = logger.DEBUG  # So logger.info(...) is equivalent to print()
+
+    logger.setLevel(level)
+    logger_channel = logger.StreamHandler()
+    logger_formatter = logger.Formatter(f'%(asctime)s - %(name)s - %(levelname)s - %(module)s:%(lineno)d:%(funcName)s: %(message)s')
+    logger_formatter.default_time_format = '%Y-%m-%d %H:%M:%S'
+    logger_formatter.default_msec_format = '%s.%03d'
+    logger_channel.setFormatter(logger_formatter)
+    logger.addHandler(logger_channel)
+
+#LOGGING_ENABLED = True # Set to True to enable logging, or False to disable
+
+localhost_var = tk.IntVar() 
+logging_var = tk.IntVar()
+speech_var = tk.IntVar() 
+ip_var = tk.StringVar()
+port_var = tk.IntVar()
+status_var = tk.StringVar()
 
 
+ip_var = (config.get_str("KillsTracker_IP") or "127.0.0.1")
+port_var = (config.get_int("KillsTracker_PORT") or 5000)
+logging_var = (config.get_int("KillsTracker_LOG") or False)
+localhost_var = ( config.get_int("KillsTracker_LOCALHOST") or False)
+speech_var = (config.get_int("KillsTracker_SPEECH") or False)
+
+
+#Log All ConfigVariables to debug console
+logger.info("Initial Settings")
+logger.info(f"KillsTracker_IP: {ip_var}")
+logger.info(f"KillsTracker_PORT: {port_var}")
+logger.info(f"KillsTracker_LOG: {logging_var}")
+logger.info(f"KillsTracker_LOCALHOST: {localhost_var}")
+logger.info(f"KillsTracker_SPEECH: {speech_var}")
+logger.info(f"KillsTracker_URL: {config.get_str('KillsTracker_URL')}")
+
+if logging_var:
+    LOGGING_ENABLED = True
+    logger.info("Logging Enabled")
+
+POST_URL = config.get_str("KillsTracker_URL")
 
 def send_kill_data(kill_data):
     try:
-
-        TARGET_URL = config.get_str("KillsTracker_HOST") or ""
-        TARGET_PORT = config.get_str("KillsTracker_PORT") or ""
-        POST_URL = f"{TARGET_URL}:{TARGET_PORT}/{TARGET_PATH}"
+        #POST_URL = "http://10.0.0.90:5050/new_kill"        
+        #POST_URL = config.get("KillsTracker_URL") or ""
+        LOGGING_ENABLED = logging_var
         if LOGGING_ENABLED:
-            logging.info(f"'Web call to:{POST_URL}")
+            logger.info(f"'Web call to:{POST_URL}")
         response = requests.post(POST_URL, json=kill_data)
         response.raise_for_status()
 
         if LOGGING_ENABLED:
-               #logging.info(f'Detected event: {entry["event"]}')
-            logging.info(kill_data)
-            #logging.info('Web call to update kills was successful')
+               #logger.info(f'Detected event: {entry["event"]}')
+            logger.info(kill_data)
+            #logger.info('Web call to update kills was successful')
     except requests.exceptions.RequestException as e:
         if LOGGING_ENABLED:
-            logging.error(f'Web call to update kills failed: {str(e)}')
+            logger.error(f'Web call to update kills failed: {str(e)}')
 
 def test_http_post():
     test_data = {'test': 'This is a test post from the EDMC plugin.'}
@@ -91,7 +144,6 @@ def create_bounty_data(entry, system, station, cmdr):
         'VictimFaction': entry['VictimFaction'] if 'VictimFaction' in entry else 'Unknown'
     }
 
-
 def create_factionkillbond_data(entry, system, station, cmdr):
     return {
         'system': system,
@@ -120,9 +172,6 @@ def create_shiptargeted_data(entry, system,station,cmdr):
     }
 
 
-
-
-
 def plugin_start3(plugin_dir: str) -> Tuple[str, str, str]:
     LOGGING_ENABLED = config.get_bool("KillsTracker_LOG") or False     
     if LOGGING_ENABLED:
@@ -133,10 +182,10 @@ def plugin_start3(plugin_dir: str) -> Tuple[str, str, str]:
     return PLUGIN_NAME
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
-    #LOGGING_ENABLED = True
+    LOGGING_ENABLED = True
     #if LOGGING_ENABLED:
-           #logging.info(f'Detected event: {entry["event"]}')
-           #logging.info(entry)
+           #logger.info(f'Detected event: {entry["event"]}')
+           #logger.info(entry)
     event = entry['event']           
     if event in ['Bounty', 'FactionKillBond', 'ShipTargeted']:
        if (event == 'Bounty'):
@@ -156,85 +205,244 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
 
 def plugin_prefs(parent: nb.Notebook, cmdr: str, is_beta: bool) -> Optional[tk.Frame]:
     frame = nb.Frame(parent)
-    frame = create_prefs_ui(frame)
+    frame = create_new_prefs_ui(frame)
     return frame
 
-def create_prefs_ui(frame):
-    frame.columnconfigure(0, weight=1, minsize=30)
-    frame.columnconfigure(1, weight=1, minsize=30)
-    frame.columnconfigure(2, weight=1, minsize=50)
-    frame.columnconfigure(3, weight=4, minsize=50)
-
-    url_label = tk.Label(frame, text="URL: (http://<hostname> or <ip>")
-    url_label.grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
-    port_label = tk.Label(frame, text="PORT:")
-    port_label.grid(row=0, column=1, padx=5, pady=5, sticky=tk.W)
-
-    
-    url_entry = tk.Entry(frame,  width=30)
-    url_entry.grid(row=1, column=0, padx=5, pady=5)
-    url_entry.insert(0, config.get_str("KillsTracker_HOST") or "")
-    port_entry = tk.Entry(frame,  width=30)
-    port_entry.grid(row=1, column=1, padx=5, pady=5)
-    port_entry.insert(0, config.get_str("KillsTracker_PORT") or "")
+def prefs_changed(cmdr: str, is_beta: bool) -> None:
+ """
+ Save settings.
+ """
+ try:
+   config.set("KillsTracker_IP", ip_var.get())
+   config.set("KillsTracker_PORT", port_var.get())
 
 
-    localhost_button = tk.Button(frame, text="Set Localhost URL", command=lambda: set_localhost(url_entry, port_entry, logging_var))
-    localhost_button.grid(row=2, column=0, padx=5, pady=5)
-
-    current_ip_button = tk.Button(frame, text="Set Current IP URL", command=lambda: set_current_ip(url_entry, port_entry, logging_var))
-    current_ip_button.grid(row=2, column=1, padx=5, pady=5)
-
-    test_connection_button = tk.Button(frame, text="Test Connection", command=lambda: test_connection(url_entry, port_entry, status_var, status_label))
-    test_connection_button.grid(row=3, column=0,  padx=5, pady=5)
-
-    status_var = tk.StringVar()
-    status_label = tk.Label(frame, textvariable=status_var, wraplength=400)
-    status_label.grid(row=3, column=1, padx=5, columnspan = 3, pady=5)
+   config.set('KillsTracker_SPEECH', speech_var.get())
+   config.set('KillsTracker_LOCALHOST', localhost_var.get())
+   config.set('KillsTracker_LOG', logging_var.get())
 
 
-    logging_var = tk.BooleanVar(value=config.get_bool("KillsTracker_logging") or False)
+   scheme = "http"
+   url_with_path = f"{scheme}://{ip_var.get()}:{port_var.get()}/new_kill"
+   
+   #config.set("KillsTracker_LOG", logging_var)      
+   #config.set("KillsTracker_SPEECH", speech_var)      
+   #config.set("KillsTracker_LOCALHOST", localhost_var)      
+   config.set("KillsTracker_URL", url_with_path)
+   #if LOGGING_ENABLED:   
+   logger.info("IS KillsTracker preferences saved.")
+ except Exception as e:
+   #if LOGGING_ENABLED:
+   logger.info("KillsTracker preferences could not be saved.")
+   logger.info(e)
 
-    logging_checkbutton = tk.Checkbutton(frame, text="Enable logging", variable=logging_var, command=lambda: toggle_logging(logging_var))
-    logging_checkbutton.grid(row=4, column=0, columnspan=1, padx=5, pady=5)
-
-    #frame.columnconfigure(1, weight=1)
-    return frame
 
 
-def set_localhost(url_entry, port_entry, logging_var):
-    url_entry.delete(0, tk.END)
-    url_entry.insert(0, "http://127.0.0.1")
-    
-    config.set("KillsTracker_HOST", url_entry.get())
-    config.set("KillsTracker_PORT", port_entry.get())
-    config.set("KillsTracker_LOG", logging_var.get()) 
 
-def set_current_ip(url_entry, port_entry, logging_var):
-    ip = socket.gethostbyname(socket.gethostname())
-    url_entry.delete(0, tk.END)
-    url_entry.insert(0, f"http://{ip}")
-    config.set("KillsTracker_HOST", url_entry.get())
-    config.set("KillsTracker_PORT", port_entry.get())
-    config.set("KillsTracker_LOG", logging_var.get()) 
 
-def test_connection(url_entry: tk.Entry, port_entry: tk.Entry,status_var: tk.StringVar, status_label: tk.Label) -> None:
+def create_new_prefs_ui(frame):
+        
+        global localhost_var 
+        global logging_var
+        global speech_var
+        global ip_var
+        global port_var
+        global status_var
+
+
+        ip_var = tk.StringVar(value=config.get_str("KillsTracker_IP"))  # Retrieve saved value from config
+        port_var = tk.IntVar(value=config.get_int("KillsTracker_PORT") or 5000)
+        logging_var = tk.IntVar()
+        logging_var.set(config.get_int("KillsTracker_LOG"))
+        localhost_var = tk.IntVar()
+        localhost_var.set(value=config.get_int("KillsTracker_LOCALHOST"))
+        speech_var = tk.IntVar()
+        speech_var.set(config.get_int("KillsTracker_SPEECH"))
+
+
+        root = frame
+        btnGetMyIP=nb.Button(root)        
+        #btnGetMyIP["justify"] = "center"
+        btnGetMyIP["text"] = "Get My IP"
+        btnGetMyIP.place(x=120,y=280,width=100,height=25)
+
+        lblSettings=nb.Label(root,justify="left",text="Plugin Settings")
+        lblSettings.place(x=10,y=10,width=140,height=25)
+
+        cbLogging=nb.Checkbutton(root, variable=logging_var)
+        #cbLogging["justify"] = "left"
+        cbLogging["text"] = "Enable Logging"
+        cbLogging.place(x=10,y=30,width=140,height=25)
+        #cbLogging["offvalue"] = "False"
+        #cbLogging["onvalue"] = "True"
+        
+        
+
+        lblServerSetting=nb.Label(root)
+        #lblServerSetting["justify"] = "left"
+        lblServerSetting["text"] = "Server Settings"
+        lblServerSetting.place(x=10,y=90,width=140,height=25)
+
+        cbSpeech=nb.Checkbutton(root, variable=speech_var)
+        #cbSpeech["justify"] = "left"
+        cbSpeech["text"] = "Enable Speech"
+        cbSpeech.place(x=10,y=110,width=140,height=25)
+        #cbSpeech["offvalue"] = "False"
+        #cbSpeech["onvalue"] = "True"
+        
+
+        lblNetworkSettings=nb.Label(root)
+        #lblNetworkSettings["justify"] = "left"
+        lblNetworkSettings["text"] = "Network Settings"
+        lblNetworkSettings.place(x=10,y=160,width=160,height=25)
+
+        cbLocalHost=nb.Checkbutton(root, variable=localhost_var)
+        #cbLocalHost["justify"] = "left"
+        cbLocalHost["text"] = "Use Localhost"
+        cbLocalHost.place(x=10,y=190,width=140,height=25)
+        #cbLocalHost["offvalue"] = "False"
+        #cbLocalHost["onvalue"] = "True"
+        
+
+        lblIPAddress=nb.Label(root)
+        #lblIPAddress["justify"] = "right"
+        lblIPAddress["text"] = "Detected IP:"
+        lblIPAddress.place(x=10,y=230,width=70,height=25)
+
+        edtIPAddress=nb.Entry(root, textvariable=ip_var)
+        edtIPAddress.place(x=90,y=230,width=92,height=30)
+
+
+        lblPort=nb.Label(root)
+        #lblPort["justify"] = "right"
+        lblPort["text"] = "Server Port"
+        lblPort.place(x=180,y=230,width=70,height=25)
+
+        edtPort=nb.Entry(root, textvariable=port_var)                        
+        edtPort.place(x=260,y=230,width=52,height=30)
+
+        lblServer=nb.Label(root)
+        #lblServer["justify"] = "left"
+        lblServer["text"] = "Server Address:"        
+        lblServer.place(x=360,y=230,width=270,height=25)
+
+
+        btnTestServer=nb.Button(root)
+        btnTestServer["text"] = "Test Server"
+        btnTestServer.place(x=10,y=280,width=100,height=25)
+
+        lblMessage=nb.Label(root)
+        #ft = tkFont.Font(family='Times',size=8)
+        #lblMessage["font"] = ft
+        #memMessage["fg"] = "#333333"
+        #lblMessage["justify"] = "left"
+        lblMessage["text"] = "Status"
+        lblMessage.place(x=10,y=310, width=600, height=25)
+
+
+        #POST_URL = config.get_str("KillsTracker_URL") or "http://127.0.0.1:5000/new_kill"
+ 
+
+
+
+
+
+        target_url_var  = "Server Address: http://" + f"{ip_var.get()}" + ":" + f"{port_var.get()}"
+        lblServer["text"] = target_url_var
+
+        #edtIPAddress.delete(0, tk.END)
+        #edtIPAddress.insert(0, f"{ip_var}")
+
+        #btnGetMyIP["command"] = btnSaveCommand(lblMessage,edtIPAddress.get(),edtPort.get(),localhost_var, logging_var  , speech_var)
+        btnGetMyIP["command"] = lambda :  edtIPAddress.config(text = get_current_ip())
+        btnTestServer["command"] = lambda : lblMessage.config(text=cbTestServerClicked(lblMessage,edtIPAddress,edtPort))
+        cbSpeech["command"] = lambda : lblMessage.config(text=cbSpeechClicked(speech_var))
+        cbLocalHost["command"] = lambda : lblMessage.config(text=cbLocalHostClicked(edtIPAddress,localhost_var.get(),ip_var,lblServer))
+        cbLogging["command"] = lambda : lblMessage.config(text=cbLoggingClicked(logging_var.get()))
+
+        return root
+
+
+
+def cbTestServerClicked(lblMessage,edtIPAddress,edtPort):
     try:
-        parsed_url = urlparse(url_entry.get())
-        parsed_port = port_entry.get() or 5000
-        url_without_path = f"{parsed_url.scheme}://{parsed_url.netloc}:{parsed_port}"
-        status_label.config(fg="black")
-        status_var.set("Testing" + url_without_path)
+        parsed_host = edtIPAddress.get() 
+        parsed_port = edtPort.get() 
+        scheme = "http"
+        url_without_path = f"{scheme}://{parsed_host}:{parsed_port}"
+        
+        lblMessage.config(fg="black")
+        lblMessage.config(text="Testing" + url_without_path)
+        #status_var.set("Testing" + url_without_path)
         response = requests.get(url_without_path)        
         if response.status_code == 200:
-           status_var.set("Connection successful!")
-           status_label.config(fg="green")
+           result = ("Connection successful!")
+           lblMessage.config(fg="green")
         else:
-            logging.debug("Error", "Connection failed.")
+            #if(LOGGING_ENABLED == True):
+            logger.debug("Error", "Connection failed.")
     except Exception as e:
-        status_var.set(f"Connection failed! {e}")
-        status_label.config(fg="red")
-        logging.debug("Error", f"Connection failed: {e}")
+        result = (f"Connection failed! {e}")
+        lblMessage.config(fg="red")
+        #if(LOGGING_ENABLED == True):
+        logger.debug("Error", f"Connection failed: {e}")
+    return result
 
-def toggle_logging(logging_var):
-    config.set("KillsTracker_LOG", logging_var.get())
+
+
+    
+
+def cbLocalHostClicked(edtIPAddress,localhost_var,ip_var,lblServer):
+        #global localhost_var
+        #global ip_var
+        if (localhost_var == True):
+            ip_var.set( '127.0.0.1')
+            result = "Use Localhost"
+        else:
+             ip_var.set(get_current_ip())
+             result = "Use dedicated IP"
+
+        target_url_var  = "Server Address: http://" + f"{ip_var.get()}" + ":" + f"{port_var.get()}"
+        lblServer["text"] = target_url_var
+             
+
+        return result
+
+
+def cbSpeechClicked(speech_var):
+    global ip_var
+    global port_var
+    parsed_host = ip_var.get()
+    parsed_port = port_var.get()
+    scheme = "http"    
+
+    if (speech_var == True):
+        result = "Speech Enabled"
+        url = f"{scheme}://{parsed_host}:{parsed_port}/speech_enable"
+        response = requests.get(url)
+        if response.status_code == 200:
+              result = ("Speech Enabled!")
+    else:
+        result = "Speech Disabled"
+        url = f"{scheme}://{parsed_host}:{parsed_port}/speech_disable"
+        response = requests.get(url)        
+        if response.status_code == 200:
+              result = ("Speech Disabled!")
+    return result
+
+def cbLoggingClicked(logging_var):
+    if (logging_var == True):
+        result = "Logging Enabled" 
+    else:
+        result = "Logging Disabled"        
+    return result
+
+
+
+
+#def get_current_ip(url_entry, port_entry, logging_var):
+def get_current_ip():
+    ip = socket.gethostbyname(socket.gethostname())
+    return ip
+    
+    

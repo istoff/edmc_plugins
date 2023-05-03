@@ -1,4 +1,12 @@
 ## Changes 
+3 May 2023
+- Cleaned up the settings screen.  Paid more attention to the plugins.md spec on EDMC Github to be more compatible
+- Added some variety to the speech
+- Realised if I have multiple views running simultaneously, speech setting comes from all devices, so need to fix this.  Currently speech can be toggled via the plugin prefs.
+- you can directly enable or disable the speech by opening a tab and calling the server url + speech_enable or speech_disable  from another tab, e.g. http://10.0.0.90:5050/speech_enable
+- more niggles and bug fixes.
+- still not happy with conflict zone and haven't killed thargoids in forever, so not really suited for those types of combat.
+
 20 April 2023
 - Big changes
 - Removed dependency on JSON files to translate the mess that is ship names.  Hopefully the ship names are all working now.

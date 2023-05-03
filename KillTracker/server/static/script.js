@@ -4,6 +4,7 @@ let sortMode = 'shipType';
 let shipData = null;
 let killDataList = [];
 let targeted_ships = [];
+let enable_speech = true;
 
 //loadShipData();
 
@@ -58,8 +59,6 @@ function addCardListener()
 });
 }
 
-
-
 socket.on('connect', () => {
 	console.log('Connected to the server.');
 });
@@ -82,7 +81,20 @@ function sentenceCase (str) {
 	return str;
 }
 
-     
+socket.on('test_server', () => {
+	speakText('Server Test Successful');
+});
+
+socket.on('speech_enable', () => {
+   enable_speech = true;
+	 speakText('Speech enabled');
+});
+
+socket.on('speech_disable', () => {
+	speakText('Speech disabled');
+	enable_speech = false;
+ 
+});
 
 
 
@@ -223,9 +235,9 @@ function addTargetedShip(killData) {
 		killData.BountyUpdated = 0;
     targeted_ships.push(killData);		
 		if (killData.amountBounty > 1000000) {			
-			speakText(GenerateRandomSpeech('ShipTargetedSuperRich',killData.Ship));
+			speakText(GenerateRandomSpeech('ShipTargetedSuperRich',killData));
 		} else {
-			speakText(GenerateRandomSpeech('ShipTargeted',killData.Ship));
+			speakText(GenerateRandomSpeech('ShipTargeted',killData));
 		}
     // Sort the list by descending bounty order
     targeted_ships.sort((a, b) => b.bountyAmount - a.bountyAmount);
@@ -240,7 +252,7 @@ function addTargetedShip(killData) {
 		  if (killData.bountyAmount > targeted_ships[index].bountyAmount ){
 			  targeted_ships[index].bountyAmount = killData.bountyAmount;
 				if (targeted_ships[index].BountyUpdated === 0) {
-			      speakText(GenerateRandomSpeech('KWS',killData.Ship));
+			      speakText(GenerateRandomSpeech('KWS',killData));
 				}
 				targeted_ships[index].BountyUpdated = 1;
 			  targeted_ships[index].Faction == killData.Faction;
@@ -258,14 +270,36 @@ function addTargetedShip(killData) {
 
 setInterval(removeOldTargetedShips, 60 * 1000); // Call the function every minute
 
-function GenerateRandomSpeech(event, shipname)
+function GenerateRandomSpeech(event, killData)
 {
+	let  shipname = "";
+	shipname = killData.Ship;
 	shipname = shipname.replace("Imperial "," ");
   shipname = shipname.replace("Federal "," ");
 	shipname = shipname.replace("IV "," 4");
 	shipname = shipname.replace("III "," 3");
 	shipname = shipname.replace("II "," 2");
 	shipname = shipname.replace("MK "," mark ");
+
+	var rank = killData.PilotRank;
+
+/* 	if rank = deadly or elite
+	   when scanned
+	   suffix = "this one's " + rank
+	   suffix = rank + "? interesting..."
+	   suffix = rank + " apparently"
+	
+	
+	   if killed.
+	   suffix = rank + " used to mean " + rank
+	   suffix = "they don't make " + rank + " like they used to"
+	
+	also say things like "elite conda" or "deadly vulture"
+	
+	
+	million dollar victim spotted.
+	 */
+
 
 	if (event == 'ShipTargetedSuperRich') {
 		var textArray = [
@@ -274,6 +308,15 @@ function GenerateRandomSpeech(event, shipname)
 			'Kerching',
 			'Target that ' + shipname + ', its worth it'			
 	];
+	if ((rank == 'Deadly') || (rank == 'Elite')) {
+		if (shipname = 'Anaconda') { shipname = 'Conda' }
+	 
+		 textArray.push('Millionaire ' + rank + ' ' + shipname + ' spotted');
+		 textArray.push( rank + ' ' + shipname + ' needs a killin');
+		 textArray.push( 'Take out that ' + rank + ' ' + shipname );
+		 textArray.push(rank + ' ' + shipname + ' added to the victim list');
+ }
+
 	}
 
 	if (event == 'ShipTargeted') {
@@ -281,8 +324,14 @@ function GenerateRandomSpeech(event, shipname)
 			'Spotted a decent ' + shipname,
 			'High value ' + shipname + ' targetted',			
 			'Heads up, ' + shipname + ' targetted',			
-			'Nice ' + shipname + 'you have there, fella',			
+			'Nice ' + shipname + 'you have there fella',			
 	];
+	if ((rank == 'Deadly') || (rank == 'Elite')) {
+		if (shipname = 'Anaconda') { shipname = 'Conda' }
+		textArray.push('High value ' + rank + ' ' + shipname + '  up for grabs');
+		textArray.push('Take out that ' + rank + ' ' + shipname );
+		textArray.push(rank + ' ' + shipname + ' added to the queue');
+	}
 	}
 
 	if (event == 'KWS') {
@@ -292,9 +341,18 @@ function GenerateRandomSpeech(event, shipname)
 			'That ' + shipname + ' is wanted elsewhere too',
 			shipname + ' worth more after that scan',						
 	];
+	if ((rank == 'Deadly') || (rank == 'Elite')) {
+		 if (shipname == 'Anaconda') { shipname = 'Conda' }
+		
+			textArray.push('That ' + rank + ' ' + shipname + ' is wanted elsewhere too');
+			textArray.push( rank + ' ' + shipname + ' is worth more after that scan');
+			textArray.push(rank + ' ' + shipname + ' bounty went up');
+			textArray.push('More people looking for that ' + rank + ' ' + shipname);			
+	}
 	}
 
 	if (event == 'Kill') {
+
 		var textArray = [
 			'Hope there was insurance on that ' + shipname,
 			shipname + ' is toast',			
@@ -303,8 +361,17 @@ function GenerateRandomSpeech(event, shipname)
 			' stick another' + shipname + ' sticker on the side',
 			' another' + shipname + ' bites the dust'
 	];
+	if ((rank == 'Deadly') || (rank == 'Elite')) {
+	 textArray.push(rank + ' used to mean something back in the day');
+	 textArray.push(' they dont make ' + rank + ' pilots like they used to');
+	 textArray.push(rank + ' club just lost another member'	);
+	 textArray.push(' ' + rank + ' ' + shipname + ' bites the dust');	 
+	 textArray.push(rank + ' ' + shipname + ' population minus one');
+	 textArray.push(rank + ' ' + shipname + ' is toast');
+	 textArray.push('how did they become ' + rank + ' in the first place ?');
+	 textArray.push('bought that ' + rank + ' in anarchy system i guess ?');
 	}
-
+	}
 	var randomNumber = Math.floor(Math.random()*textArray.length);
 	
 
@@ -316,10 +383,10 @@ function GenerateRandomSpeech(event, shipname)
 
 
 function speakText(Text) {
-	//const text = 'High Value ' + shipType + 'Targeted';
+	if (enable_speech == true) {
 	
 	// Check if the browser supports the Web Speech API
-	if ('speechSynthesis' in window) {
+	if ('speechSynthesis' in window)  {
 			const speech = new SpeechSynthesisUtterance(Text);
 			window.speechSynthesis.cancel()
 			speech.lang = 'en-US';
@@ -330,6 +397,7 @@ function speakText(Text) {
 	} else {
 			console.log('Sorry, your browser does not support the Web Speech API.');
 	}
+}
 }
 
 
@@ -366,7 +434,7 @@ function removeTargetedShip(killData) {
   );
 
   if (index !== -1) {
-		speakText(GenerateRandomSpeech('Kill',killData.Ship));
+		speakText(GenerateRandomSpeech('Kill',killData));
     targeted_ships.splice(index, 1);
 		console.log("Removed:{killData.shipname}  from targeted_ships");		
 		
