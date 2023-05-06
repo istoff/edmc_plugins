@@ -1,4 +1,9 @@
 ## Changes 
+6 May 2023
+- Cleaned up some interface oddities with the page setting
+- Added browser setting for speech.  if you had multiple pages open, all of them would talk!
+- bugfix on conda detection
+
 3 May 2023
 - Cleaned up the settings screen.  Paid more attention to the plugins.md spec on EDMC Github to be more compatible
 - Added some variety to the speech
