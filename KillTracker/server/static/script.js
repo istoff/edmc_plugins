@@ -4,7 +4,7 @@ let sortMode = 'shipType';
 let shipData = null;
 let killDataList = [];
 let targeted_ships = [];
-let enable_speech = true;
+let enable_speech = false;
 
 //loadShipData();
 
@@ -85,7 +85,7 @@ socket.on('test_server', () => {
 	speakText('Server Test Successful');
 });
 
-socket.on('speech_enable', () => {
+/* socket.on('speech_enable', () => {
    enable_speech = true;
 	 speakText('Speech enabled');
 });
@@ -94,7 +94,19 @@ socket.on('speech_disable', () => {
 	speakText('Speech disabled');
 	enable_speech = false;
  
-});
+}); */
+
+// enable or disable speech based on the state of the checkbox control in the html template
+function toggleSpeech() {
+	if (document.getElementById("speechSetting").checked) {
+		enable_speech = true;
+		speakText('Speech enabled');
+	} else {		
+		speakText('Speech disabled');
+		enable_speech = false;
+	}
+}	
+
 
 
 
@@ -276,10 +288,10 @@ function GenerateRandomSpeech(event, killData)
 	shipname = killData.Ship;
 	shipname = shipname.replace("Imperial "," ");
   shipname = shipname.replace("Federal "," ");
-	shipname = shipname.replace("IV "," 4");
-	shipname = shipname.replace("III "," 3");
-	shipname = shipname.replace("II "," 2");
-	shipname = shipname.replace("MK "," mark ");
+	shipname = shipname.replace("IV ","");
+	shipname = shipname.replace("III ","");
+	shipname = shipname.replace("II ","");
+	shipname = shipname.replace("MK ","");
 
 	var rank = killData.PilotRank;
 
@@ -308,8 +320,10 @@ function GenerateRandomSpeech(event, killData)
 			'Kerching',
 			'Target that ' + shipname + ', its worth it'			
 	];
-	if ((rank == 'Deadly') || (rank == 'Elite')) {
-		if (shipname = 'Anaconda') { shipname = 'Conda' }
+	if ((rank === 'Deadly') || (rank === 'Elite')) {
+		if (shipname == 'Anaconda') {
+			 shipname = 'Conda' ;
+			}
 	 
 		 textArray.push('Millionaire ' + rank + ' ' + shipname + ' spotted');
 		 textArray.push( rank + ' ' + shipname + ' needs a killin');
@@ -327,7 +341,7 @@ function GenerateRandomSpeech(event, killData)
 			'Nice ' + shipname + 'you have there fella',			
 	];
 	if ((rank == 'Deadly') || (rank == 'Elite')) {
-		if (shipname = 'Anaconda') { shipname = 'Conda' }
+		if (shipname == 'Anaconda') { shipname = 'Conda' }
 		textArray.push('High value ' + rank + ' ' + shipname + '  up for grabs');
 		textArray.push('Take out that ' + rank + ' ' + shipname );
 		textArray.push(rank + ' ' + shipname + ' added to the queue');
@@ -342,7 +356,10 @@ function GenerateRandomSpeech(event, killData)
 			shipname + ' worth more after that scan',						
 	];
 	if ((rank == 'Deadly') || (rank == 'Elite')) {
-		 if (shipname == 'Anaconda') { shipname = 'Conda' }
+		 if (shipname == 'Anaconda') 
+		 { 
+			shipname = 'Conda' 
+		 }
 		
 			textArray.push('That ' + rank + ' ' + shipname + ' is wanted elsewhere too');
 			textArray.push( rank + ' ' + shipname + ' is worth more after that scan');

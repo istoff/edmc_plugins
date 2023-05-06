@@ -36,12 +36,24 @@
             <button class="button" id="clearDataButton">Clear All Data</button>            
             <button class="button" id='desktopButton' onclick="switchLayout('default')">Desktop</button>
             <button class="button" id='mobileButton'   onclick="switchLayout('mobile')">Mobile</button>
+            <!--add checkbox with label prompt to Enable Speech and  set command, style = orange and black -->
+            <!-- use css to style orange and black -->            
+            <!-- call a javascript function when checked-->
+            <label class="checkbox-container">
+              <span class="checkbox-text">Enable Speech</span>
+              <input type="checkbox" id="speechSetting" onchange="toggleSpeech(self)">              
+              <span class="checkbox-custom"></span>
+            </label>
+            
             <div class="tabs" id = "mobiletabs" style="display: none;">
               <button class="button" onclick="openTab(event, 'killsTablePlaceholderMobile')">Kills Table</button>
               <button class="button" onclick="openTab(event, 'summaryTablesPlaceholderMobile')">Summary</button>
               <button class="button" onclick="openTab(event, 'gridPlaceholderMobile')">Grid</button>
             </div>      
         </td>
+
+
+
 
       </tr>
     </table>
@@ -74,12 +86,16 @@
         </span>
         <button class="button" onclick="nextPage()">Next</button>
         <label for="rowsPerPage">Rows per page:</label>
-        <select id="rowsPerPage" onchange="updateRowsPerPage(this.value)">
+
+
+        <div class="selector-wrapper">          
+        <select id="rowsPerPage" onchange="updateRowsPerPage(this.value)" class="selector">
           <option value="10" selected>10</option>
           <option value="25">25</option>
           <option value="50">50</option>
           <option value="100">100</option>
         </select>
+        </div>
       </div>
       <table id="killsTable" class="sortable">
         <thead>
@@ -114,10 +130,6 @@
     <div id="gridWrapper">
       <div class="grid-container" id="shipTypeBountiesGrid"></div>
     </div>
-
-
-
-
     <div id="summaryTablesWrapper">
       <table id="summaryTables">
         <tr>
