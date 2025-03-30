@@ -17,7 +17,7 @@ import tkinter.font as tkFont
 
 PLUGIN_NAME = "KillsTracker"
 
-PLUGIN_VERSION = "0.4"
+PLUGIN_VERSION = "0.5"
 #TARGET_URL = "http://10.0.0.90"
 #TARGET_PORT = "5050"
 TARGET_PATH = "new_kill"
@@ -119,8 +119,8 @@ def create_kill_data(entry, system,station,cmdr):
         'Station': station if station is not None else '',
         'Cmdr': cmdr if cmdr is not None else '',
 	'Ship': entry['Ship'] if 'Ship' in entry else 0,
-	'Ship_Localised': entry['Ship_Localised'] if 'Ship_Localised' in entry else 0,
-	'shipName': entry['Ship_Localised'] if 'Ship_Localised' in entry else 0,
+	'Ship_Localised': entry['Target_Localised'] if 'Target_Localised' in entry else 0,
+	'shipName': entry['Target_Localised'] if 'Target_Localised' in entry else 0,
 	'Bounty': entry['Bounty'] if 'Bounty' in entry else 0,
 	'PilotName': entry['PilotName'] if 'PilotName' in entry else '',
 	'LegalStatus': entry['LegalStatus'] if 'LegalStatus' in entry else '',
@@ -157,13 +157,14 @@ def create_factionkillbond_data(entry, system, station, cmdr):
     }
 
 def create_shiptargeted_data(entry, system,station,cmdr):
+    
     return {
         'system': system,
 	    'station': station,
 	    'cmdr': cmdr,
         'event': 'ShipTargeted',
         'timestamp': entry['timestamp'],
-        'Ship' : entry['Ship_Localised'] if 'Ship_Localised' in entry else entry['Ship'].title(),
+        'Ship' : entry['Target_Localised'] if 'Ship_Localised' in entry else entry['Ship'].title(),
         'bountyAmount' : entry['Bounty'] if 'Bounty' in entry else 0,
         'VictimFaction': entry['Faction'] if 'Faction' in entry else 'Unknown',
         'PilotName': entry['PilotName_Localised'] if 'PilotName' in entry else '',
@@ -183,9 +184,9 @@ def plugin_start3(plugin_dir: str) -> Tuple[str, str, str]:
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
     LOGGING_ENABLED = True
-    #if LOGGING_ENABLED:
-           #logger.info(f'Detected event: {entry["event"]}')
-           #logger.info(entry)
+    if LOGGING_ENABLED:
+           logger.info(f'Detected event: {entry["event"]}')
+           logger.info(entry)
     event = entry['event']           
     if event in ['Bounty', 'FactionKillBond', 'ShipTargeted']:
        if (event == 'Bounty'):
@@ -197,8 +198,12 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
            send_kill_data(kill_data)
 
        if (event == 'ShipTargeted'):
-           kill_data = create_shiptargeted_data(entry, system, station, cmdr)
-           send_kill_data(kill_data)
+           if entry['TargetLocked']==True:
+              kill_data = create_shiptargeted_data(entry, system, station, cmdr)
+              send_kill_data(kill_data)
+              logger.info("Ship Targeted event sent")
+           else:
+              logger.info("Ship Targeted event not sent, TargetLocked is False")
 
        #kill_data = create_kill_data(entry,system,station,cmdr)
        #send_kill_data(kill_data)
