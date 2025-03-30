@@ -652,3 +652,27 @@ th:nth-child(2), td:nth-child(2),
 th:nth-child(3), td:nth-child(3) {
   text-align: right;
 }
+/* Add these styles to styles.css */
+.power-status {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.2rem;
+  padding: 0.2rem 0.4rem;
+  background-color: rgba(255, 165, 0, 0.1);
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.power-name {
+  font-weight: 600;
+  color: var(--ed-orange);
+}
+
+.merits-total {
+  font-weight: 500;
+}
+
+.merits-session {
+  color: #4CAF50;
+  font-weight: 600;
+}

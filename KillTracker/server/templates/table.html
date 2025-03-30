@@ -23,6 +23,7 @@
         <div class="header-left">
           <h1 class="title">Elite Dangerous: Kills Tracker</h1>
           <div id="status" class="status">Status</div>
+          <div id="powerStatus" class="power-status" style="display:none;"></div>
         </div>
         <div class="header-right">
 
@@ -181,6 +182,19 @@
                   </tr>
                 </thead>
                 <tbody id="eventTypeBountiesTableBody"></tbody>
+              </table>
+            </div>
+            <div class="summary-table">
+              <h3>PowerPlay Merits</h3>
+              <table id="powerPlayMerits" class="data-table sortable">
+                <thead>
+                  <tr>
+                    <th class="sortable" onclick="sortTable('powerPlayMerits', 0)">Power</th>
+                    <th class="sortable" onclick="sortTable('powerPlayMerits', 1)">Total Merits</th>
+                    <th class="sortable" onclick="sortTable('powerPlayMerits', 2)">Number of Events</th>
+                  </tr>
+                </thead>
+                <tbody id="powerPlayMeritsTableBody"></tbody>
               </table>
             </div>
           </div>

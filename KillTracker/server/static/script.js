@@ -23,6 +23,11 @@ let enable_speech = false;    // Speech synthesis toggle
 let currentPage = 1;          // Current page in the kills table pagination
 let rowsPerPage = 10;         // Number of rows per page in the kills table
 
+// Power variables
+let currentPower = null;
+let totalMerits = 0;
+let sessionMerits = 0;
+
 // Loop detection variables
 let isSorting = false;
 let lastKillDataSize = 0;
@@ -60,8 +65,13 @@ socket.on('test_server', () => {
 });
 
 // Data event listeners - most important part of the application
+socket.on('powerplay_merits', function(data) {
+  console.log('Received PowerplayMerits event:', data);
+  handleNewKillData(data);
+});
 socket.on('new_kill', handleNewKillData);
 socket.on('new_test', handleTestData);
+
 
 // DOM loaded event to initialize the UI
 document.addEventListener('DOMContentLoaded', function() {
@@ -107,6 +117,44 @@ window.addEventListener('beforeunload', () => {
   console.log(`Saving ${killDataList.length} kills before unloading`);
   localStorage.setItem('killTracker', JSON.stringify(killDataList));
 });
+
+// Power Header Display and Merit Totals Reset
+/**
+ * Function to update the power status in the header
+ * Call this whenever a PowerplayMerits event is received
+ */
+function updatePowerStatus(powerData) {
+  if (!powerData || !powerData.Power) return;
+  
+  // Update the current power and merit counts
+  currentPower = powerData.Power;
+  totalMerits = powerData.totalMerits || powerData.TotalMerits || 0;
+  
+  // Add to session merits
+  const meritsGained = powerData.meritsGained || powerData.MeritsGained || 0;
+  sessionMerits += meritsGained;
+  
+  // Update the status display
+  const powerStatusElement = document.getElementById('powerStatus');
+  if (powerStatusElement) {
+    powerStatusElement.innerHTML = `<span class="power-name">${currentPower}</span>: <span class="merits-total">${totalMerits.toLocaleString()}</span> total merits (<span class="merits-session">+${sessionMerits.toLocaleString()}</span> this session)`;
+    powerStatusElement.style.display = 'block';
+  }
+}
+
+/**
+ * Reset session merits (for example, when clearing data)
+ */
+function resetSessionMerits() {
+  sessionMerits = 0;
+  const powerStatusElement = document.getElementById('powerStatus');
+  if (powerStatusElement && currentPower) {
+    powerStatusElement.innerHTML = `<span class="power-name">${currentPower}</span>: <span class="merits-total">${totalMerits.toLocaleString()}</span> total merits (<span class="merits-session">+${sessionMerits.toLocaleString()}</span> this session)`;
+  } else if (powerStatusElement) {
+    powerStatusElement.style.display = 'none';
+  }
+}
+
 
 // ======================================================================
 // DATA LOADING AND SAVING FUNCTIONS
@@ -233,6 +281,93 @@ function renderAllTables() {
 // CORE DATA HANDLING FUNCTIONS
 // ======================================================================
 
+
+/**
+ * New function to generate random speech for PowerplayMerits events
+ * To add to the existing GenerateRandomSpeech function
+ */
+function GenerateRandomPowerplaySpeech(killData) {
+  const power = killData.Power || '';
+  const meritsGained = killData.meritsGained || killData.MeritsGained || 0;
+  
+  // Determine tier of contribution
+  let tier = "standard";
+  let tierPrefix = "";
+  
+  if (meritsGained > 300) {
+    tier = "exceptional";
+    tierPrefix = "";
+  } else if (meritsGained > 200) {
+    tier = "highValue";
+    tierPrefix = "";
+  } else if (meritsGained > 100) {
+    tier = "notable";
+    tierPrefix = "";
+  } else if (meritsGained <= 99) {
+    // Don't announce very small contributions
+    return null;
+  }
+  
+  // Arrays of phrases for different tiers
+  const standardPhrases = [
+    `${meritsGained} merits gained for ${power}`,
+    `Working for ${power}, gained ${meritsGained} merits`,
+    `${power} acknowledges your ${meritsGained} merit contribution`,
+    `You've earned ${meritsGained} merits for ${power}`,
+  ];
+  
+  const notablePhrases = [
+    `Good work! ${meritsGained} merits for ${power}`,
+    `${power} values your contribution of ${meritsGained} merits`,
+    `Solid effort! ${meritsGained} merits gained for ${power}`,
+    `${power} recognizes your dedication with ${meritsGained} merits`,
+    `Notable contribution of ${meritsGained} merits for ${power}`,
+    `${power} appreciates your ${meritsGained} merit contribution`,
+  ];
+  
+  const highValuePhrases = [
+    `Impressive effort! ${meritsGained} merits for ${power}`,
+    `${power} highly values your ${meritsGained} merit contribution`,
+    `Excellent work! ${meritsGained} merits gained for ${power}`,
+    `${power} is pleased with your ${meritsGained} merit contribution`,
+    `Major contribution of ${meritsGained} merits for ${power}`,
+    `${power} acknowledges your ${meritsGained} merit contribution`,
+
+  ];
+  
+  const exceptionalPhrases = [
+    `Outstanding! ${meritsGained} merits for ${power}`,
+    `${power} greatly appreciates your ${meritsGained} merit contribution`,
+    `Exceptional work! ${meritsGained} merits for ${power}`,
+    `Major contribution of ${meritsGained} merits will strengthen ${power}'s position`,
+    `${power} is grateful for your ${meritsGained} merit contribution`,
+    `Your ${meritsGained} merits for ${power} are truly exceptional`,
+  ];
+  
+  // Select appropriate phrase set based on tier
+  let phrases;
+  switch(tier) {
+    case "notable":
+      phrases = notablePhrases;
+      break;
+    case "highValue":
+      phrases = highValuePhrases;
+      break;
+    case "exceptional":
+      phrases = exceptionalPhrases;
+      break;
+    default:
+      phrases = standardPhrases;
+  }
+  
+  // Select random phrase from the appropriate set
+  const randomIndex = Math.floor(Math.random() * phrases.length);
+  return tierPrefix + phrases[randomIndex];
+}
+
+
+
+
 /**
  * Handles new kill data received from the socket
  */
@@ -273,6 +408,29 @@ function handleNewKillData(killData) {
       addTargetedShip(killData);
     }
   }
+else if (killData.eventType === 'PowerplayMerits') {
+    // Format PowerplayMerits data
+    killData.shipname = 'None';
+    killData.Faction = killData.Power;
+    killData.Power = killData.Power || 'Unknown Power';
+    killData.meritsGained = killData.meritsGained || 0;
+    killData.totalMerits = killData.totalMerits || 0;
+    
+
+    // Update the power status in the header
+    updatePowerStatus(killData);
+
+    // Add to kill table
+    addKillTableRow(killData);
+    
+   // Get speech text - will be empty string if we should not announce
+   const speechText = GenerateRandomSpeech('PowerplayMerits', killData);
+    
+   // Only speak if there's something to say (notable contributions)
+   if (speechText) {
+     speakText(speechText);
+   }
+}  
 
   // Update table sorting for other tables
   updateTableSorting();
@@ -503,8 +661,93 @@ function updateSummaryTables(killData) {
   // Update event type bounties table
   updateNestedTable('eventTypeBounties', killData.eventType, killData.bountyAmount);
   
+
+  // Update PowerPlay merits table if it's a PowerplayMerits event
+  if (killData.eventType === 'PowerplayMerits') {
+    updatePowerPlayTable(killData);
+  }
+
   // Update the visual grid
   updateShipTypeBountiesGrid();
+}
+
+
+/**
+ * Update the PowerPlay merits table
+ */
+function updatePowerPlayTable(killData) {
+  const powerPlayTable = document.getElementById('powerPlayMerits');
+  if (!powerPlayTable) return;
+  
+  const power = killData.Power;
+  const meritsGained = killData.meritsGained || 0;
+  const totalMerits = killData.totalMerits || 0;
+  
+  let row = powerPlayTable.rows.namedItem(power);
+  
+  // Remove existing footer row if it exists
+  if (powerPlayTable.tFoot) {
+    powerPlayTable.removeChild(powerPlayTable.tFoot);
+  }
+  
+  if (!row) {
+    // Create new row for this power
+    row = powerPlayTable.insertRow(-1);
+    row.id = power;
+    
+    let nameCell = row.insertCell(0);
+    nameCell.textContent = power;
+    
+    let meritCell = row.insertCell(1);
+    meritCell.style.textAlign = "right";
+    meritCell.textContent = totalMerits;
+    
+    let countCell = row.insertCell(2);
+    countCell.style.textAlign = "right";
+    countCell.textContent = 1;
+    
+    // Store the highest total merits as a data attribute on the row
+    row.setAttribute('data-highest-merits', totalMerits);
+  } else {
+    // Update existing row with new merits count
+    let countCell = row.cells[2];
+    let currentCount = parseInt(countCell.textContent || 0);
+    countCell.textContent = currentCount + 1;
+    
+    // Update total merits to the latest value
+    row.cells[1].textContent = totalMerits;
+    
+    // Update highest merits if the current total is higher
+    let highestMerits = parseInt(row.getAttribute('data-highest-merits') || 0);
+    if (totalMerits > highestMerits) {
+      row.setAttribute('data-highest-merits', totalMerits);
+    }
+  }
+  
+  // Create and insert footer row with totals
+  const tfoot = powerPlayTable.createTFoot();
+  const footerRow = tfoot.insertRow(-1);
+  let totalEvents = 0;
+  
+  // Calculate total events across all powers
+  for (let i = 1; i < powerPlayTable.rows.length - 1; i++) {
+    if (powerPlayTable.rows[i].cells.length >= 3) {
+      totalEvents += parseInt(powerPlayTable.rows[i].cells[2].textContent || 0);
+    }
+  }
+  
+  footerRow.insertCell(0).innerText = 'Total';
+  const footerTotalMeritsCell = footerRow.insertCell(1);
+  const footerTotalEventsCell = footerRow.insertCell(2);
+  footerTotalMeritsCell.innerText = '-'; // No meaningful total for merits across powers
+  footerTotalEventsCell.innerText = totalEvents;
+  footerTotalMeritsCell.style.textAlign = "right";
+  footerTotalEventsCell.style.textAlign = "right";
+  
+  // Apply the footer-row class to all cells in the footer row
+  footerRow.cells[0].classList.add("footer-row");
+  footerTotalMeritsCell.classList.add("footer-row");
+  footerTotalEventsCell.classList.add("footer-row");
 }
 
 /**
@@ -1071,6 +1314,9 @@ function clearAllData() {
   // Clear the data from the killDataList variable
   killDataList = [];
   
+  // Clear the session merits
+  resetSessionMerits()
+
   // Clear all UI elements
   clearAllTables();
   
@@ -1086,6 +1332,18 @@ function clearAllTables() {
   clearTableData("shipTypeBounties");
   clearTableData("killsTable");
   clearTableData("eventTypeBounties");
+  clearTableData("powerPlayMerits");
+
+   // Reset PowerPlay status variables
+   currentPower = null;
+   totalMerits = 0;
+   sessionMerits = 0;
+
+  // Hide the power status display
+  const powerStatusElement = document.getElementById('powerStatus');
+  if (powerStatusElement) {
+    powerStatusElement.style.display = 'none';
+  }
   
   // Clear the grid
   const gridContainer = document.getElementById('shipTypeBountiesGrid');
@@ -1102,6 +1360,13 @@ function clearAllTables() {
       tbody.innerHTML = '';
     }
   }
+
+  // Refresh Updated Tables
+  updateSummaryTables({});
+  updatePowerPlayTable({});
+
+    
+
 }
 
 /**
@@ -1265,13 +1530,21 @@ function GenerateRandomSpeech(event, killData) {
   let rank = killData.PilotRank || "";
   let textArray = [];
 
-  if (event === 'ShipTargetedSuperRich') {
+  // Add PowerplayMerits case
+  if (event === 'PowerplayMerits') {
+    const speech = GenerateRandomPowerplaySpeech(killData);
+    // Return speech if it's not null, otherwise return empty string to avoid speech
+    return speech || "";
+  }
+  else if (event === 'ShipTargetedSuperRich') {
     textArray = [
       'Spotted a high value ' + shipname,
       'Millionaire ' + shipname + ' targeted',
       'Kerching',
       'Target that ' + shipname + ', its worth it'
     ];
+    
+    // ... rest of the existing function ...
     
     if ((rank === 'Deadly') || (rank === 'Elite')) {
       if (shipname === 'Anaconda') {
@@ -1344,7 +1617,6 @@ function GenerateRandomSpeech(event, killData) {
   const randomNumber = Math.floor(Math.random() * textArray.length);
   return textArray[randomNumber];
 }
-
 /**
  * Card listener for mouse wheel zoom
  */

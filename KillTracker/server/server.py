@@ -1,4 +1,3 @@
-
 import eventlet
 eventlet.monkey_patch()
 
@@ -18,15 +17,28 @@ def home():
 @app.route('/new_kill', methods=['POST'])
 def update_kills():
     kill_data = request.json
-    print (kill_data)
-    socketio.emit('new_kill', kill_data)
+    print(kill_data)
+    
+    # Check if this is a PowerplayMerits event and route accordingly
+    if kill_data.get('event') == 'PowerplayMerits':
+        socketio.emit('powerplay_merits', kill_data)
+    else:
+        socketio.emit('new_kill', kill_data)
+        
     return jsonify({'success': True, 'data': kill_data})
 
+# Dedicated route for PowerplayMerits
+@app.route('/powerplay_merits', methods=['POST'])
+def update_powerplay():
+    merits_data = request.json
+    print(merits_data)
+    socketio.emit('powerplay_merits', merits_data)
+    return jsonify({'success': True, 'data': merits_data})
 
 @app.route('/new_test', methods=['POST'])
 def update_test():
     kill_data = request.json
-    print (kill_data)
+    print(kill_data)
     socketio.emit('new_test', kill_data)
     return jsonify({'success': True, 'data': kill_data})
 
@@ -44,10 +56,6 @@ def speech_disable():
 def test_server():    
     socketio.emit('test_server')
     return jsonify({'success': True})
-
-
-
-
 
 if __name__ == '__main__':
     if localhost:

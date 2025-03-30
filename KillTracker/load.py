@@ -17,7 +17,7 @@ import tkinter.font as tkFont
 
 PLUGIN_NAME = "KillsTracker"
 
-PLUGIN_VERSION = "0.5"
+PLUGIN_VERSION = "0.6"
 #TARGET_URL = "http://10.0.0.90"
 #TARGET_PORT = "5050"
 TARGET_PATH = "new_kill"
@@ -172,6 +172,23 @@ def create_shiptargeted_data(entry, system,station,cmdr):
         'PilotRank': entry['PilotRank'] if 'PilotRank' in entry else ''
     }
 
+def create_powerplaymerits_data(entry, system, station, cmdr):
+    return {
+        'system': system,
+        'station': station,
+        'cmdr': cmdr,
+        'event': 'PowerplayMerits',
+        'timestamp': entry['timestamp'],
+        'Power': entry['Power'],
+        'MeritsGained': entry['MeritsGained'],
+        'TotalMerits': entry['TotalMerits'],
+        'meritsGained': entry['MeritsGained'],  # Duplicate with lowercase for consistency
+        'totalMerits': entry['TotalMerits'],    # Duplicate with lowercase for consistency
+        'bountyAmount': entry['MeritsGained'],  # Using merits gained as bounty amount for display purposes
+        'Ship': 'None',
+        'VictimFaction': entry['Power'],  # Using Power as VictimFaction for display purposes
+        'AwardingFaction': entry['Power']  # Using Power as AwardingFaction for display purposes
+    }
 
 def plugin_start3(plugin_dir: str) -> Tuple[str, str, str]:
     LOGGING_ENABLED = config.get_bool("KillsTracker_LOG") or False     
@@ -188,7 +205,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
            logger.info(f'Detected event: {entry["event"]}')
            logger.info(entry)
     event = entry['event']           
-    if event in ['Bounty', 'FactionKillBond', 'ShipTargeted']:
+    if event in ['Bounty', 'FactionKillBond', 'ShipTargeted', 'PowerplayMerits']:
        if (event == 'Bounty'):
            kill_data = create_bounty_data(entry, system, station, cmdr)
            send_kill_data(kill_data)
@@ -204,6 +221,11 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
               logger.info("Ship Targeted event sent")
            else:
               logger.info("Ship Targeted event not sent, TargetLocked is False")
+              
+       if (event == 'PowerplayMerits'):
+           kill_data = create_powerplaymerits_data(entry, system, station, cmdr)
+           send_kill_data(kill_data)
+           logger.info("PowerplayMerits event sent")
 
        #kill_data = create_kill_data(entry,system,station,cmdr)
        #send_kill_data(kill_data)
@@ -449,5 +471,3 @@ def cbLoggingClicked(logging_var):
 def get_current_ip():
     ip = socket.gethostbyname(socket.gethostname())
     return ip
-    
-    

@@ -1,14 +1,14 @@
 # Elite Dangerous Kills Tracker
 
-This project is an Elite Dangerous Kills Tracker that logs and visualizes bounty hunting data. It consists of an EDMC plugin, a server, a web interface, and a test program.
+This project is an Elite Dangerous Kills Tracker that logs and visualizes bounty hunting and PowerPlay data. It consists of an EDMC plugin, a server, a web interface, and test programs.
 
 ## Introduction
-This program scratches an itch I've had for years.  When playing ED, I'd like a running summary of the kills I've made.  I've thought about it often, but certainly didn't think I could pull it off without some major headaches and mistakes.
+This program scratches an itch I've had for years. When playing ED, I'd like a running summary of the kills I've made and my PowerPlay activities. I've thought about it often, but certainly didn't think I could pull it off without some major headaches and mistakes.
 
-I had recently been dabbling with ChatGPT4 and was looking for a use case that was simple, but had some complexity to test a variety of componens in one solution.
-Essentially, there are 2 bits at work here.   One is a EDMC plugin that collects events from the ED Journal and posts it to the second part, which is a web page that auto updates a fairly rich status screen when you receive a kill bounty.  It's seen limited testing so far in Resource Extraction Sites.  Much more testing needed.
+I had recently been dabbling with ChatGPT4 and was looking for a use case that was simple, but had some complexity to test a variety of components in one solution.
+Essentially, there are 2 bits at work here. One is a EDMC plugin that collects events from the ED Journal and posts it to the second part, which is a web page that auto updates a fairly rich status screen when you receive a kill bounty or perform PowerPlay activities. It's seen limited testing so far in Resource Extraction Sites and PowerPlay activities. Much more testing needed.
 
-There are 2 utilities provided.  One is a simple python http server you can run and host the file.  This is to receive communication and refresh the web page.  The second is a simple test program to create a sample kill and send it to the web server.  This exists for you to test communication to the web page and that your server is working.   All of these programs depend on the url being the same in the server.py, load.py and the createTestKill.py.   
+There are 2 utilities provided. One is a simple python http server you can run and host the file. This is to receive communication and refresh the web page. The second is a simple test program to create sample events and send them to the web server. This exists for you to test communication to the web page and that your server is working. All of these programs depend on the url being the same in the server.py, load.py and the createTestKill.py/createTestPowerplayMerits.py.
 
 ## Table of Contents
 
@@ -34,11 +34,11 @@ There are 2 utilities provided.  One is a simple python http server you can run 
 
 ## QuickStart
 Assuming everything installed correctly.
-1 goto you EDMC plugins directory /Killtracker/
-2 check load.py and server.py are in sync w.r.t. server url.  Default is localhost.  Modify if you want to use your own IP and set LOCALHOST to false in server.py
-3 run python server.py to start the server.  open the url in a browser.
-4 start edmc.  check the plugin is loaded.  the prefs ui has a basic settings tab where you can test the server, but it doesn't save it yet.
-5 start killing. 
+1. goto you EDMC plugins directory /Killtracker/
+2. check load.py and server.py are in sync w.r.t. server url. Default is localhost. Modify if you want to use your own IP and set LOCALHOST to false in server.py
+3. run python server.py to start the server. open the url in a browser.
+4. start edmc. check the plugin is loaded. the prefs ui has a basic settings tab where you can test the server, but it doesn't save it yet.
+5. start killing or performing PowerPlay activities.
 
 
 ## Installation
@@ -72,11 +72,12 @@ python server.py
 
 This will start the Flask server.
 
-3. **Access Web Interface**: Open a web browser and visit `http://localhost:5000` to access the Bounty Tracker web interface.  You can make it work on any IP with minimal effort.  I will document this.
+3. **Access Web Interface**: Open a web browser and visit `http://localhost:5000` to access the Bounty Tracker web interface. You can make it work on any IP with minimal effort. I will document this.
 
-4. **Run Test Program (Optional)**: To simulate bounty hunting events for testing, run the test program in a terminal or command prompt:
+4. **Run Test Program (Optional)**: To simulate events for testing, run the test programs in a terminal or command prompt:
 
 python createTestKill.py
+python createTestPowerplayMerits.py
 
 
 ## Folder Layout
@@ -84,39 +85,42 @@ python createTestKill.py
 - `plugin`: The EDMC plugin folder.
 - `server\server.py`: The Flask server script.
 - `server\createTestKill.py`: The test program for simulating bounty hunting events.
+- `server\createTestPowerplayMerits.py`: The test program for simulating PowerPlay events.
 - `server\templates`: Contains the HTML templates for the web interface.
 - `server\static`: Contains the CSS stylesheets, JavaScript files, and other static files for the web interface.
 - `server\images`: Contains the images files for the web interface (mostly ship thumbnails from EDAssets).
 
 ## Features
 
-- Real-time tracking of bounty hunting events.
-- Summary tables for bounties per faction, ship type, and event type.
+- Real-time tracking of bounty hunting events and PowerPlay activities.
+- PowerPlay merits tracking with current power and session metrics in header.
+- Tiered speech feedback for significant merit contributions (>100, >200, >300).
+- Summary tables for bounties per faction, ship type, PowerPlay power, and event type.
 - Top kills table with sorting and pagination.
 - Ship type grid view with sorting and dynamic resizing based on screen width.
 - Adjustable font size for tables.
 - Desktop / Mobile Mode - Mobile lets you pick one grid to focus on.
-- Some adjusting sizing of fonts for spaceing.
+- Some adjusting sizing of fonts for spacing.
 - Click Grid ships to change sort order
-= Speech.  Companion speech pops up for kills, targetting and kill warrant scans.  Some variety based on rank added.
+- Speech. Companion speech pops up for kills, targeting, kill warrant scans, and PowerPlay events.
 - Settings screen reworked tremendously in EDMCPlugin.
 
 ## To-Do
- Android Support? (works via browser)
- Run on different browsers?  Tested on Edge, Brave, Chrome, Samsung Internet
- Different Screen layouts? Kind happy with it.
- Preferences screen for plugin? [mostly done]
- Get graphics for other kill types.   Thargoids, Scanners, etc.
- I don't kill traders so I don't know if the other ship types will have working art.  The images are there, but possibly wrong filenames.
+- Android Support? (works via browser)
+- Run on different browsers? Tested on Edge, Brave, Chrome, Samsung Internet
+- Different Screen layouts? Kind happy with it.
+- PowerPlay visualization and ranking progress tracking?
+- Get graphics for other kill types. Thargoids, Scanners, etc.
+- I don't kill traders so I don't know if the other ship types will have working art. The images are there, but possibly wrong filenames.
  
 ## Caveats
 This project is provided "as is" without warranty of any kind, either express or implied, including, but not limited to, the implied warranties of merchantability, fitness for a particular purpose, or non-infringement.
 The authors and contributors of this project shall not be held liable for any damages or loss caused or alleged to be caused by or in connection with the use of or reliance on the content provided.
 This project is not affiliated with or endorsed by the creators of Elite Dangerous or any of its affiliates or subsidiaries.
-99.9 %  of the code is written by ChatGPT4.  I have learned a ton about html/ js/ css, but it's not quality by any means.
+99.9% of the code is written by ChatGPT4. I have learned a ton about html/js/css, but it's not quality by any means.
 I want to learn a bit more about test driven development, so I might ask the AI to help me learn and implement it.
-I rarely play Elite anymore, so I'm probably not going to be able to be as active maintaining this as I would have liked.  I really want somebody to take it and make 100x better.  It started as an exercise in GPT4 and I remain an idiot programmer who doesn't really understand what I'm doing at all.
-When Elite has more planetary landing content and exploration of atmospheric worlds, I'll probably come back.  This could probably be modified fairly easily to get ground combat tracked as well, but I can't see myself bothering.
+I rarely play Elite anymore, so I'm probably not going to be able to be as active maintaining this as I would have liked. I really want somebody to take it and make 100x better. It started as an exercise in GPT4 and I remain an idiot programmer who doesn't really understand what I'm doing at all.
+When Elite has more planetary landing content and exploration of atmospheric worlds, I'll probably come back. This could probably be modified fairly easily to get ground combat tracked as well, but I can't see myself bothering.
 
 
 ## Credits
@@ -125,15 +129,13 @@ All the opensource devs who contributed to Python and all the libs in use.
 To the guys in Flat Galaxy Society and especially anyone with any fond memories of [Null] / Conway City
 To the contributors who added the ship artwork to https://edassets.org/
 To CMDR Ian Norton who lead the way and got me interested in this.
-To CMDR BuzzLiteYear who helps with the testing and is an awesome buddy to fly/drive with.  Since 1987.  C64, Amiga, PC and beyond.
+To CMDR BuzzLiteYear who helps with the testing and is an awesome buddy to fly/drive with. Since 1987. C64, Amiga, PC and beyond.
 
 ## Changes
 Moved to Changelog File
 
 ## Issues
- - Elite Dangerous Journal uses shipId's which don't match the shipNames in the journal.  I need to convert the names to make it work in the image display.  [edit, new JSON object] 
- - Must fix the top toolbar functionality and usability.  More material design??
- - I don't have nice art for ship launched fighters at the moment
- - Trying to save some screen real estate by faffing with the headers and buttons - I'm rubbish at it.
- - Sorting on the summary's back.  Kill List next
-
+- Elite Dangerous Journal uses shipId's which don't match the shipNames in the journal. I need to convert the names to make it work in the image display. [edit, new JSON object] 
+- Must fix the top toolbar functionality and usability. More material design??
+- I don't have nice art for ship launched fighters at the moment
+- Trying to save some screen real estate by faffing with the headers and buttons - I'm rubbish at it.
