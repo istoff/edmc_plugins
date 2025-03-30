@@ -8,170 +8,186 @@
     <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
     <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="/static/script.js" defer></script>
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/static/icons/favicon-16x16.png">
-    <style>
-      .fontsize {
-        font-size: 12px;
-      }
-    </style>
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/icons/favicon-16x16.png">
   </head>
   <body>
-    <table>
-      <tr>        
-        <td>
-          <bold>Elite Dangerous: Kills Tracker</bold><br>
-	  <label id="status" for="fontSize">Status</label>
-        </td>
-        <td>
-          <div id="controlPanel">
-            <button class="button" onclick="generateRandomRow()">Add Sample</button>
-            <button class="button" id="clearDataButton">Clear All Data</button>            
-            <button class="button" id='desktopButton' onclick="switchLayout('default')">Desktop</button>
-            <button class="button" id='mobileButton'   onclick="switchLayout('mobile')">Mobile</button>
-            <!--add checkbox with label prompt to Enable Speech and  set command, style = orange and black -->
-            <!-- use css to style orange and black -->            
-            <!-- call a javascript function when checked-->
-            <label class="checkbox-container">
-              <span class="checkbox-text">Enable Speech</span>
-              <input type="checkbox" id="speechSetting" onchange="toggleSpeech(self)">              
-              <span class="checkbox-custom"></span>
-            </label>
-            
-            <div class="tabs" id = "mobiletabs" style="display: none;">
-              <button class="button" onclick="openTab(event, 'killsTablePlaceholderMobile')">Kills Table</button>
-              <button class="button" onclick="openTab(event, 'summaryTablesPlaceholderMobile')">Summary</button>
-              <button class="button" onclick="openTab(event, 'gridPlaceholderMobile')">Grid</button>
-            </div>      
-        </td>
-
-
-
-
-      </tr>
-    </table>
-    </div>
-    <!-- Default layout -->
-    <div id="defaultLayout">
-      <Table>
-      <tr><td><div id="killsTablePlaceholder"></td><td><div id="ShipsTargettedPlaceholder"></div></td></div></tr>
-      </Table>
-      <div id="gridPlaceholder"></div>
-      <div id="summaryTablesPlaceholder"></div>
-      
-    </div>
-    <!-- Mobile layout -->
-    <div id="mobileLayout" style="display: none;">
-      <div id="killsTablePlaceholderMobile" class="tabcontent"></div>
-      <div id="ShipsTargettedPlaceholderMobile" class="tabcontent"></div>
-      <div id="gridPlaceholderMobile" class="tabcontent"></div>
-      <div id="summaryTablesPlaceholderMobile" class="tabcontent"></div>      
-    </div>
-    <div id="killsTableWrapper">
-      <div id="pagePrefs" style="display: block;">
-        <!-- Font Size Selector -->
-        <label for="fontSize">Font Size:</label>
-        <button class="button" id="increaseFontSize" onclick="changeFontSize(1)">A+</button>
-        <button class="button" id="decreaseFontSize" onclick="changeFontSize(-1)">A-</button>
-        <!-- Paging Selector -->
-        <button class="button" onclick="previousPage()">Previous</button>
-        <span>Page <span id="currentPage">1</span> of <span id="totalPages">1</span>
-        </span>
-        <button class="button" onclick="nextPage()">Next</button>
-        <label for="rowsPerPage">Rows per page:</label>
-
-
-        <div class="selector-wrapper">          
-        <select id="rowsPerPage" onchange="updateRowsPerPage(this.value)" class="selector">
-          <option value="10" selected>10</option>
-          <option value="25">25</option>
-          <option value="50">50</option>
-          <option value="100">100</option>
-        </select>
+    <div class="container">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <h1 class="title">Elite Dangerous: Kills Tracker</h1>
+          <div id="status" class="status">Status</div>
         </div>
-      </div>
-      <table id="killsTable" class="sortable">
-        <thead>
-          <tr>
-            <th>Timestamp</th>
-            <th>Ship</th>
-            <th>Faction</th>
-            <th>Event</th>
-            <th>Victim Faction</th>
-            <th>Bounty</th>
-          </tr>
-        </thead>
-        <tbody id="killsTableBody"></tbody>
-      </table>
+        <div class="header-right">
+
+<!-- More compact header controls -->
+<div class="controls">
+  <button class="button small" onclick="generateRandomRow()">Add Sample</button>
+  <button class="button small danger" id="clearDataButton">Clear</button>
+  <div class="layout-toggle">
+    <button class="button small active" id="desktopButton" onclick="switchLayout('default')">Desktop</button>
+    <button class="button small" id="mobileButton" onclick="switchLayout('mobile')">Mobile</button>
+  </div>
+  <label class="checkbox-container">
+    <span class="checkbox-text">Speech</span>
+    <input type="checkbox" id="speechSetting" onchange="toggleSpeech(this)">
+    <span class="checkbox-custom"></span>
+  </label>
+</div>
+          <div class="tabs" id="mobiletabs" style="display: none;">
+            <button class="button" onclick="openTab(event, 'killsTablePlaceholderMobile')">Kills Table</button>
+            <button class="button" onclick="openTab(event, 'summaryTablesPlaceholderMobile')">Summary</button>
+            <button class="button" onclick="openTab(event, 'gridPlaceholderMobile')">Grid</button>
+          </div>
+        </div>
+      </header>
+      
+      <!-- Main Content Area -->
+      <main>
+
+<!-- Adjust the column layout for the top section to give more space to the kills table -->
+<div id="defaultLayout" class="layout">
+  <div class="top-section">
+    <div id="killsTablePlaceholder" class="kills-section"></div>
+    <div id="ShipsTargettedPlaceholder" class="targeted-section"></div>
+  </div>
+  <div class="info-section">
+    <div id="gridPlaceholder" class="grid-section"></div>
+    <div id="summaryTablesPlaceholder" class="summary-section"></div>
+  </div>
+</div>
+        
+        <!-- Mobile layout -->
+        <div id="mobileLayout" class="layout" style="display: none;">
+          <div id="killsTablePlaceholderMobile" class="tabcontent"></div>
+          <div id="ShipsTargettedPlaceholderMobile" class="tabcontent"></div>
+          <div id="gridPlaceholderMobile" class="tabcontent"></div>
+          <div id="summaryTablesPlaceholderMobile" class="tabcontent"></div>
+        </div>
+        
+        <!-- Kills Table -->
+        <div id="killsTableWrapper" class="table-wrapper">
+
+
+<!-- More compact controls section -->
+<div id="pagePrefs" class="page-controls">
+  <div class="font-controls">
+    <label for="fontSize">Size:</label>
+    <button class="button small" id="increaseFontSize" onclick="changeFontSize(1)">+</button>
+    <button class="button small" id="decreaseFontSize" onclick="changeFontSize(-1)">-</button>
+  </div>
+  <div class="pagination">
+    <button class="button small" onclick="previousPage()">◀</button>
+    <span><span id="currentPage">1</span>/<span id="totalPages">1</span></span>
+    <button class="button small" onclick="nextPage()">▶</button>
+    <label for="rowsPerPage">Rows:</label>
+    <div class="selector-wrapper">
+      <select id="rowsPerPage" onchange="updateRowsPerPage(this.value)" class="selector">
+        <option value="10" selected>10</option>
+        <option value="25">25</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select>
     </div>
-    <div id="ShipsTargettedTableWrapper" style="vertical-align: top;">
-      <div id="pagePrefs" style="display: block;">
-        <label style="vertical-align: top;">Targetted Ships Nearby:</label>
-        <button class="button" onclick="WipeShipTargettedTable()">Clear All</button>
-        <table id="ShipsTargettedTable" class="sortable">
-          <thead>
-            <tr>
-              <th>Faction</th>
-              <th>Ship</th>
-              <th>Potential Victim</th>
-              <th>Bounty</th>
-            </tr>
-          </thead>
-          <tbody id="ShipsTargettedTableBody"></tbody>
-        </table>
-      </div>
-    <div id="gridWrapper">
-      <div class="grid-container" id="shipTypeBountiesGrid"></div>
+  </div>
+</div>
+
+
+
+
+<table id="killsTable" class="data-table sortable">
+  <thead>
+    <tr>
+      <th>Time</th>
+      <th>Ship</th>
+      <th>Faction</th>
+      <th>Event</th>
+      <th>Victim</th>
+      <th>Bounty</th>
+    </tr>
+  </thead>
+  <tbody id="killsTableBody"></tbody>
+</table>
+        
+        <!-- Ships Targetted Table -->
+        <div id="ShipsTargettedTableWrapper" class="table-wrapper">
+          <div class="table-header">
+            <h2>Targeted Ships Nearby</h2>
+            <button class="button small" onclick="WipeShipTargettedTable()">Clear All</button>
+          </div>
+          <table id="ShipsTargettedTable" class="data-table sortable">
+            <thead>
+              <tr>
+                <th>Faction</th>
+                <th>Ship</th>
+                <th>Potential Victim</th>
+                <th>Bounty</th>
+              </tr>
+            </thead>
+            <tbody id="ShipsTargettedTableBody"></tbody>
+          </table>
+        </div>
+        
+        <!-- Grid Wrapper -->
+        <div id="gridWrapper" class="grid-wrapper">
+          <h2>Ship Types</h2>
+          <div class="grid-container" id="shipTypeBountiesGrid"></div>
+        </div>
+        
+        <!-- Summary Tables -->
+        <div id="summaryTablesWrapper" class="summary-wrapper">
+          <h2>Summary Statistics</h2>
+          <div class="summary-tables">
+            <div class="summary-table">
+              <h3>Faction Bounties</h3>
+              <table id="factionBounties" class="data-table sortable">
+                <thead>
+                  <tr>
+                    <th class="sortable" onclick="sortTable('factionBounties', 0)">Faction</th>
+                    <th class="sortable" onclick="sortTable('factionBounties', 1)">Bounty Amount</th>
+                    <th class="sortable" onclick="sortTable('factionBounties', 2)">Number of Bounties</th>
+                  </tr>
+                </thead>
+                <tbody id="factionBountiesTableBody"></tbody>
+              </table>
+            </div>
+            <div class="summary-table">
+              <h3>Ship Type Bounties</h3>
+              <table id="shipTypeBounties" class="data-table sortable">
+                <thead>
+                  <tr>
+                    <th class="sortable" onclick="sortTable('shipTypeBounties', 0)">Ship Type</th>
+                    <th class="sortable" onclick="sortTable('shipTypeBounties', 1)">Bounty Amount</th>
+                    <th class="sortable" onclick="sortTable('shipTypeBounties', 2)">Number of Kills</th>
+                  </tr>
+                </thead>
+                <tbody id="shipTypeBountiesTableBody"></tbody>
+              </table>
+            </div>
+            <div class="summary-table">
+              <h3>Event Type Bounties</h3>
+              <table id="eventTypeBounties" class="data-table sortable">
+                <thead>
+                  <tr>
+                    <th class="sortable" onclick="sortTable('eventTypeBounties', 0)">Faction</th>
+                    <th class="sortable" onclick="sortTable('eventTypeBounties', 1)">Bounty Amount</th>
+                    <th class="sortable" onclick="sortTable('eventTypeBounties', 2)">Number of Kills</th>
+                  </tr>
+                </thead>
+                <tbody id="eventTypeBountiesTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
-    <div id="summaryTablesWrapper">
-      <table id="summaryTables">
-        <tr>
-          <td style="vertical-align: top;">
-            <table id="factionBounties" class="sortable">
-              <thead>
-                <tr>
-                  <th class="sortable" onclick="sortTable('factionBounties', 0)">Faction</th>
-                  <th class="sortable" onclick="sortTable('factionBounties', 1)">Bounty Amount</th>
-                  <th class="sortable" onclick="sortTable('factionBounties', 2)">Number of Bounties</th>
-                </tr>
-              </thead>
-              <tbody id="factionBountiesTableBody"></tbody>
-            </table>
-          </td>
-          <td style="vertical-align: top;">
-            <table id="shipTypeBounties" class="sortable">
-              <thead>
-                <tr>
-                  <th class="sortable" onclick="sortTable('shipTypeBounties', 0)">Ship Type</th>
-                  <th class="sortable" onclick="sortTable('shipTypeBounties', 1)">Bounty Amount</th>
-                  <th class="sortable" onclick="sortTable('shipTypeBounties', 2)">Number of Kills</th>
-                </tr>
-              </thead>
-              <tbody id="shipTypeBountiesTableBody"></tbody>
-            </table>
-          </td>
-          <td style="vertical-align: top;">
-            <table id="eventTypeBounties" class="sortable">
-              <thead>
-                <tr>
-                  <th class="sortable" onclick="sortTable('eventTypeBounties', 0)">Faction</th>
-                  <th class="sortable" onclick="sortTable('eventTypeBounties', 1)">Bounty Amount</th>
-                  <th class="sortable" onclick="sortTable('shipeventTypeBountiesTypeBounties', 2)">Number of Kills</th>
-                </tr>
-              </thead>
-              <tbody id="eventTypeBountiesTableBody"></tbody>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </div>
+    
     <script>
       // Move tables and grid to the default layout placeholders
       document.getElementById('killsTablePlaceholder').appendChild(document.getElementById('killsTableWrapper'));
