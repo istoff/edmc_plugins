@@ -888,6 +888,11 @@ function updateShipTypeBountiesGrid() {
     "Federal Dropship": "federal-dropship",
     "Diamondback Explorer": "diamondback-explorer",
     "Diamondback Scout": "diamondback-scout",
+    "Mamba" : "mamba",
+    "Mandalay" : "mandalay",
+    "Type-8 Transporter" : "type-8-transporter",
+    "Python MkII","python-mkii"
+    "Commando","commando"
     // Add more mappings as needed
   };
 
