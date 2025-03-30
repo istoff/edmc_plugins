@@ -7,7 +7,7 @@ import random
 
 app = Flask(__name__)
 socketio = SocketIO(app)
-localhost = False # Put your Own IP Below if Localhost
+localhost = True # Put your Own IP Below if Localhost
 
 
 @app.route('/')

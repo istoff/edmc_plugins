@@ -891,8 +891,8 @@ function updateShipTypeBountiesGrid() {
     "Mamba" : "mamba",
     "Mandalay" : "mandalay",
     "Type-8 Transporter" : "type-8-transporter",
-    "Python MkII","python-mkii"
-    "Commando","commando"
+    "Python MkII":"python-mkii",
+    "Commando":"commando",
     // Add more mappings as needed
   };
 
