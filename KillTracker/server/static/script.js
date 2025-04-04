@@ -1319,13 +1319,16 @@ function clearAllData() {
   // Clear the data from the killDataList variable
   killDataList = [];
   
-  // Clear the session merits
-  resetSessionMerits()
+  // Clear all PowerPlay data
+  currentPower = null;
+  totalMerits = 0;
+  sessionMerits = 0;
+  resetSessionMerits();
 
   // Clear all UI elements
   clearAllTables();
   
-  console.log("All data cleared");
+  console.log("All data cleared including PowerPlay summary");
 }
 
 /**
@@ -1366,9 +1369,25 @@ function clearAllTables() {
     }
   }
 
+  // Clear PowerPlay table completely
+  const powerPlayTable = document.getElementById('powerPlayMerits');
+  if (powerPlayTable) {
+    powerPlayTable.innerHTML = ''; // Clear entire table including footer
+    // Recreate basic table structure
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+      <tr>
+        <th>Power</th>
+        <th>Total Merits</th>
+        <th>Events</th>
+      </tr>
+    `;
+    powerPlayTable.appendChild(thead);
+    powerPlayTable.appendChild(document.createElement('tbody'));
+  }
+
   // Refresh Updated Tables
   updateSummaryTables({});
-  updatePowerPlayTable({});
 
     
 

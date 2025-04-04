@@ -1,473 +1,266 @@
-import os
-import socket
-import requests
+from flask import Flask, render_template, request, jsonify
+from flask_socketio import SocketIO
 import json
+import os
 import logging
-from theme import theme
-from typing import Tuple
-from typing import Optional
-import tkinter as tk
-from tkinter.ttk import Notebook
-import myNotebook as nb
-from config import config
-from config import appname
-import plug
-from urllib.parse import urlparse
-import tkinter.font as tkFont
+from datetime import datetime
 
-PLUGIN_NAME = "KillsTracker"
+app = Flask(__name__)
+# Fix for threading issues - don't use eventlet
+socketio = SocketIO(app, async_mode='threading')
+localhost = True  # Set to False to use external IP
 
-PLUGIN_VERSION = "0.6"
-#TARGET_URL = "http://10.0.0.90"
-#TARGET_PORT = "5050"
-TARGET_PATH = "new_kill"
-#TARGET_URL = "http://10.0.0.90:5050/new_kill"
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('server.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger('killtracker_server')
 
-## Setup Official Logger Code
-# This could also be returned from plugin_start3()
-plugin_name = os.path.basename(os.path.dirname(__file__))
+# Session data for PowerPlay
+powerplay_session = {
+    'power': None,
+    'total_merits': 0,
+    'session_merits': 0,
+    'last_updated': None
+}
 
-# A Logger is used per 'found' plugin to make it easy to include the plugin's
-# folder name in the logging output format.
-# NB: plugin_name here *must* be the plugin's folder name as per the preceding
-#     code, else the logger won't be properly set up.
-logger = logging.getLogger(f'{appname}.{plugin_name}')
+# Path to session storage file
+session_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../powerplay_session.json')
 
-# If the Logger has handlers then it was already set up by the core code, else
-# it needs setting up here.
-if not logger.hasHandlers():
-    level = logger.DEBUG  # So logger.info(...) is equivalent to print()
-
-    logger.setLevel(level)
-    logger_channel = logger.StreamHandler()
-    logger_formatter = logger.Formatter(f'%(asctime)s - %(name)s - %(levelname)s - %(module)s:%(lineno)d:%(funcName)s: %(message)s')
-    logger_formatter.default_time_format = '%Y-%m-%d %H:%M:%S'
-    logger_formatter.default_msec_format = '%s.%03d'
-    logger_channel.setFormatter(logger_formatter)
-    logger.addHandler(logger_channel)
-
-#LOGGING_ENABLED = True # Set to True to enable logging, or False to disable
-
-localhost_var = tk.IntVar() 
-logging_var = tk.IntVar()
-speech_var = tk.IntVar() 
-ip_var = tk.StringVar()
-port_var = tk.IntVar()
-status_var = tk.StringVar()
-
-
-ip_var = (config.get_str("KillsTracker_IP") or "127.0.0.1")
-port_var = (config.get_int("KillsTracker_PORT") or 5000)
-logging_var = (config.get_int("KillsTracker_LOG") or False)
-localhost_var = ( config.get_int("KillsTracker_LOCALHOST") or False)
-speech_var = (config.get_int("KillsTracker_SPEECH") or False)
-
-
-#Log All ConfigVariables to debug console
-logger.info("Initial Settings")
-logger.info(f"KillsTracker_IP: {ip_var}")
-logger.info(f"KillsTracker_PORT: {port_var}")
-logger.info(f"KillsTracker_LOG: {logging_var}")
-logger.info(f"KillsTracker_LOCALHOST: {localhost_var}")
-logger.info(f"KillsTracker_SPEECH: {speech_var}")
-logger.info(f"KillsTracker_URL: {config.get_str('KillsTracker_URL')}")
-
-if logging_var:
-    LOGGING_ENABLED = True
-    logger.info("Logging Enabled")
-
-POST_URL = config.get_str("KillsTracker_URL")
-
-def send_kill_data(kill_data):
-    try:
-        #POST_URL = "http://10.0.0.90:5050/new_kill"        
-        #POST_URL = config.get("KillsTracker_URL") or ""
-        LOGGING_ENABLED = logging_var
-        if LOGGING_ENABLED:
-            logger.info(f"'Web call to:{POST_URL}")
-        response = requests.post(POST_URL, json=kill_data)
-        response.raise_for_status()
-
-        if LOGGING_ENABLED:
-               #logger.info(f'Detected event: {entry["event"]}')
-            logger.info(kill_data)
-            #logger.info('Web call to update kills was successful')
-    except requests.exceptions.RequestException as e:
-        if LOGGING_ENABLED:
-            logger.error(f'Web call to update kills failed: {str(e)}')
-
-def test_http_post():
-    test_data = {'test': 'This is a test post from the EDMC plugin.'}
-    send_kill_data(test_data)
-
-def create_kill_data(entry, system,station,cmdr):
-    return {
-         'system': system,
-	 'station': station,
-	 'cmdr': cmdr,
-	 'entry': entry,
-        'timestamp': entry['timestamp'],
-	'event': entry['event'],
-        'eventType': entry['event'],
-        'shipType': entry['Target'] if 'Target' in entry else entry['Ship_Localised'] if 'Ship_Localised' in entry else 'Unknown',
-        'Faction': entry['VictimFaction'] if 'VictimFaction' in entry else 'Unknown',
-        'bountyAmount': entry['TotalReward'] if 'TotalReward' in entry else 0,
-        'AwardingFaction': entry['AwardingFaction'] if 'AwardingFaction' in entry else 'Unknown',
-        'VictimFaction': entry['VictimFaction'] if 'VictimFaction' in entry else 'Unknown',
-        'Rewards': entry['Rewards'] if 'Rewards' in entry else 0,
-        'System': system if system is not None else '',
-        'Station': station if station is not None else '',
-        'Cmdr': cmdr if cmdr is not None else '',
-	'Ship': entry['Ship'] if 'Ship' in entry else 0,
-	'Ship_Localised': entry['Target_Localised'] if 'Target_Localised' in entry else 0,
-	'shipName': entry['Target_Localised'] if 'Target_Localised' in entry else 0,
-	'Bounty': entry['Bounty'] if 'Bounty' in entry else 0,
-	'PilotName': entry['PilotName'] if 'PilotName' in entry else '',
-	'LegalStatus': entry['LegalStatus'] if 'LegalStatus' in entry else '',
-	'Faction': entry['Faction'] if 'Faction' in entry else '',
-	'PilotRank': entry['PilotRank'] if 'PilotRank' in entry else '',
-	'PilotName_Localised': entry['PilotName_Localised'] if 'PilotName_Localised' in entry else '',
-	'Target': entry['Target'] if 'Target' in entry else '',
-	'Target_Localised': entry['Target_Localised'] if 'Target_Localised' in entry else ''
-    }
-
-def create_bounty_data(entry, system, station, cmdr):
-    return {
-        'system': system,
-	    'station': station,
-	    'cmdr': cmdr,
-        'event': 'Bounty',
-        'timestamp': entry['timestamp'],
-        'Ship' : entry['Target_Localised'] if 'Target_Localised' in entry else entry['Target'].title(),
-        'bountyAmount' :  entry['TotalReward'] if 'TotalReward' in entry else 0,
-        'Rewards' : entry['Rewards'] if 'Rewards' in entry else 0,
-        'VictimFaction': entry['VictimFaction'] if 'VictimFaction' in entry else 'Unknown'
-    }
-
-def create_factionkillbond_data(entry, system, station, cmdr):
-    return {
-        'system': system,
-	    'station': station,
-	    'cmdr': cmdr,
-        'event': 'FactionKillBond',
-        'timestamp': entry['timestamp'],
-        'bountyAmount' : entry['Reward'] if 'Reward' in entry else 0,
-        'VictimFaction': entry['VictimFaction'] if 'VictimFaction' in entry else 'Unknown',
-        'AwardingFaction': entry['AwardingFaction'] if 'AwardingFaction' in entry else 'Unknown',
-    }
-
-def create_shiptargeted_data(entry, system,station,cmdr):
+def load_powerplay_session():
+    """Load PowerPlay session data from file if available"""
+    global powerplay_session
     
-    return {
-        'system': system,
-	    'station': station,
-	    'cmdr': cmdr,
-        'event': 'ShipTargeted',
-        'timestamp': entry['timestamp'],
-        'Ship' : entry['Target_Localised'] if 'Ship_Localised' in entry else entry['Ship'].title(),
-        'bountyAmount' : entry['Bounty'] if 'Bounty' in entry else 0,
-        'VictimFaction': entry['Faction'] if 'Faction' in entry else 'Unknown',
-        'PilotName': entry['PilotName_Localised'] if 'PilotName' in entry else '',
-	    'LegalStatus': entry['LegalStatus'] if 'LegalStatus' in entry else '',
-        'PilotRank': entry['PilotRank'] if 'PilotRank' in entry else ''
-    }
+    if os.path.exists(session_file):
+        try:
+            with open(session_file, 'r') as f:
+                data = json.load(f)
+                powerplay_session = data
+                logger.info(f"Loaded PowerPlay session: {powerplay_session['power']}, "
+                           f"{powerplay_session['total_merits']} total merits")
+        except Exception as e:
+            logger.error(f"Error loading PowerPlay session: {e}")
 
-def create_powerplaymerits_data(entry, system, station, cmdr):
-    return {
-        'system': system,
-        'station': station,
-        'cmdr': cmdr,
-        'event': 'PowerplayMerits',
-        'timestamp': entry['timestamp'],
-        'Power': entry['Power'],
-        'MeritsGained': entry['MeritsGained'],
-        'TotalMerits': entry['TotalMerits'],
-        'meritsGained': entry['MeritsGained'],  # Duplicate with lowercase for consistency
-        'totalMerits': entry['TotalMerits'],    # Duplicate with lowercase for consistency
-        'bountyAmount': entry['MeritsGained'],  # Using merits gained as bounty amount for display purposes
-        'Ship': 'None',
-        'VictimFaction': entry['Power'],  # Using Power as VictimFaction for display purposes
-        'AwardingFaction': entry['Power']  # Using Power as AwardingFaction for display purposes
-    }
-
-def plugin_start3(plugin_dir: str) -> Tuple[str, str, str]:
-    LOGGING_ENABLED = config.get_bool("KillsTracker_LOG") or False     
-    if LOGGING_ENABLED:
-        log_file_path = os.path.join(plugin_dir, 'ship_kills_plugin.log')
-        logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
-
-    #test_http_post()
-    return PLUGIN_NAME
-
-def journal_entry(cmdr, is_beta, system, station, entry, state):
-    LOGGING_ENABLED = True
-    if LOGGING_ENABLED:
-           logger.info(f'Detected event: {entry["event"]}')
-           logger.info(entry)
-    event = entry['event']           
-    if event in ['Bounty', 'FactionKillBond', 'ShipTargeted', 'PowerplayMerits']:
-       if (event == 'Bounty'):
-           kill_data = create_bounty_data(entry, system, station, cmdr)
-           send_kill_data(kill_data)
-
-       if (event == 'FactionKillBond'):
-           kill_data = create_factionkillbond_data(entry, system, station, cmdr)
-           send_kill_data(kill_data)
-
-       if (event == 'ShipTargeted'):
-           if entry['TargetLocked']==True:
-              kill_data = create_shiptargeted_data(entry, system, station, cmdr)
-              send_kill_data(kill_data)
-              logger.info("Ship Targeted event sent")
-           else:
-              logger.info("Ship Targeted event not sent, TargetLocked is False")
-              
-       if (event == 'PowerplayMerits'):
-           kill_data = create_powerplaymerits_data(entry, system, station, cmdr)
-           send_kill_data(kill_data)
-           logger.info("PowerplayMerits event sent")
-
-       #kill_data = create_kill_data(entry,system,station,cmdr)
-       #send_kill_data(kill_data)
-
-def plugin_prefs(parent: nb.Notebook, cmdr: str, is_beta: bool) -> Optional[tk.Frame]:
-    frame = nb.Frame(parent)
-    frame = create_new_prefs_ui(frame)
-    return frame
-
-def prefs_changed(cmdr: str, is_beta: bool) -> None:
- """
- Save settings.
- """
- try:
-   config.set("KillsTracker_IP", ip_var.get())
-   config.set("KillsTracker_PORT", port_var.get())
-
-
-   config.set('KillsTracker_SPEECH', speech_var.get())
-   config.set('KillsTracker_LOCALHOST', localhost_var.get())
-   config.set('KillsTracker_LOG', logging_var.get())
-
-
-   scheme = "http"
-   url_with_path = f"{scheme}://{ip_var.get()}:{port_var.get()}/new_kill"
-   
-   #config.set("KillsTracker_LOG", logging_var)      
-   #config.set("KillsTracker_SPEECH", speech_var)      
-   #config.set("KillsTracker_LOCALHOST", localhost_var)      
-   config.set("KillsTracker_URL", url_with_path)
-   #if LOGGING_ENABLED:   
-   logger.info("IS KillsTracker preferences saved.")
- except Exception as e:
-   #if LOGGING_ENABLED:
-   logger.info("KillsTracker preferences could not be saved.")
-   logger.info(e)
-
-
-
-
-
-def create_new_prefs_ui(frame):
-        
-        global localhost_var 
-        global logging_var
-        global speech_var
-        global ip_var
-        global port_var
-        global status_var
-
-
-        ip_var = tk.StringVar(value=config.get_str("KillsTracker_IP"))  # Retrieve saved value from config
-        port_var = tk.IntVar(value=config.get_int("KillsTracker_PORT") or 5000)
-        logging_var = tk.IntVar()
-        logging_var.set(config.get_int("KillsTracker_LOG"))
-        localhost_var = tk.IntVar()
-        localhost_var.set(value=config.get_int("KillsTracker_LOCALHOST"))
-        speech_var = tk.IntVar()
-        speech_var.set(config.get_int("KillsTracker_SPEECH"))
-
-
-        root = frame
-        btnGetMyIP=nb.Button(root)        
-        #btnGetMyIP["justify"] = "center"
-        btnGetMyIP["text"] = "Get My IP"
-        btnGetMyIP.place(x=120,y=280,width=100,height=25)
-
-        lblSettings=nb.Label(root,justify="left",text="Plugin Settings")
-        lblSettings.place(x=10,y=10,width=140,height=25)
-
-        cbLogging=nb.Checkbutton(root, variable=logging_var)
-        #cbLogging["justify"] = "left"
-        cbLogging["text"] = "Enable Logging"
-        cbLogging.place(x=10,y=30,width=140,height=25)
-        #cbLogging["offvalue"] = "False"
-        #cbLogging["onvalue"] = "True"
-        
-        
-
-        lblServerSetting=nb.Label(root)
-        #lblServerSetting["justify"] = "left"
-        lblServerSetting["text"] = "Server Settings"
-        lblServerSetting.place(x=10,y=90,width=140,height=25)
-
-        cbSpeech=nb.Checkbutton(root, variable=speech_var)
-        #cbSpeech["justify"] = "left"
-        cbSpeech["text"] = "Enable Speech"
-        cbSpeech.place(x=10,y=110,width=140,height=25)
-        #cbSpeech["offvalue"] = "False"
-        #cbSpeech["onvalue"] = "True"
-        
-
-        lblNetworkSettings=nb.Label(root)
-        #lblNetworkSettings["justify"] = "left"
-        lblNetworkSettings["text"] = "Network Settings"
-        lblNetworkSettings.place(x=10,y=160,width=160,height=25)
-
-        cbLocalHost=nb.Checkbutton(root, variable=localhost_var)
-        #cbLocalHost["justify"] = "left"
-        cbLocalHost["text"] = "Use Localhost"
-        cbLocalHost.place(x=10,y=190,width=140,height=25)
-        #cbLocalHost["offvalue"] = "False"
-        #cbLocalHost["onvalue"] = "True"
-        
-
-        lblIPAddress=nb.Label(root)
-        #lblIPAddress["justify"] = "right"
-        lblIPAddress["text"] = "Detected IP:"
-        lblIPAddress.place(x=10,y=230,width=70,height=25)
-
-        edtIPAddress=nb.Entry(root, textvariable=ip_var)
-        edtIPAddress.place(x=90,y=230,width=92,height=30)
-
-
-        lblPort=nb.Label(root)
-        #lblPort["justify"] = "right"
-        lblPort["text"] = "Server Port"
-        lblPort.place(x=180,y=230,width=70,height=25)
-
-        edtPort=nb.Entry(root, textvariable=port_var)                        
-        edtPort.place(x=260,y=230,width=52,height=30)
-
-        lblServer=nb.Label(root)
-        #lblServer["justify"] = "left"
-        lblServer["text"] = "Server Address:"        
-        lblServer.place(x=360,y=230,width=270,height=25)
-
-
-        btnTestServer=nb.Button(root)
-        btnTestServer["text"] = "Test Server"
-        btnTestServer.place(x=10,y=280,width=100,height=25)
-
-        lblMessage=nb.Label(root)
-        #ft = tkFont.Font(family='Times',size=8)
-        #lblMessage["font"] = ft
-        #memMessage["fg"] = "#333333"
-        #lblMessage["justify"] = "left"
-        lblMessage["text"] = "Status"
-        lblMessage.place(x=10,y=310, width=600, height=25)
-
-
-        #POST_URL = config.get_str("KillsTracker_URL") or "http://127.0.0.1:5000/new_kill"
- 
-
-
-
-
-
-        target_url_var  = "Server Address: http://" + f"{ip_var.get()}" + ":" + f"{port_var.get()}"
-        lblServer["text"] = target_url_var
-
-        #edtIPAddress.delete(0, tk.END)
-        #edtIPAddress.insert(0, f"{ip_var}")
-
-        #btnGetMyIP["command"] = btnSaveCommand(lblMessage,edtIPAddress.get(),edtPort.get(),localhost_var, logging_var  , speech_var)
-        btnGetMyIP["command"] = lambda :  edtIPAddress.config(text = get_current_ip())
-        btnTestServer["command"] = lambda : lblMessage.config(text=cbTestServerClicked(lblMessage,edtIPAddress,edtPort))
-        cbSpeech["command"] = lambda : lblMessage.config(text=cbSpeechClicked(speech_var))
-        cbLocalHost["command"] = lambda : lblMessage.config(text=cbLocalHostClicked(edtIPAddress,localhost_var.get(),ip_var,lblServer))
-        cbLogging["command"] = lambda : lblMessage.config(text=cbLoggingClicked(logging_var.get()))
-
-        return root
-
-
-
-def cbTestServerClicked(lblMessage,edtIPAddress,edtPort):
+def save_powerplay_session():
+    """Save PowerPlay session data to file"""
     try:
-        parsed_host = edtIPAddress.get() 
-        parsed_port = edtPort.get() 
-        scheme = "http"
-        url_without_path = f"{scheme}://{parsed_host}:{parsed_port}"
+        # Update timestamp
+        powerplay_session['last_updated'] = datetime.now().isoformat()
         
-        lblMessage.config(fg="black")
-        lblMessage.config(text="Testing" + url_without_path)
-        #status_var.set("Testing" + url_without_path)
-        response = requests.get(url_without_path)        
-        if response.status_code == 200:
-           result = ("Connection successful!")
-           lblMessage.config(fg="green")
-        else:
-            #if(LOGGING_ENABLED == True):
-            logger.debug("Error", "Connection failed.")
+        with open(session_file, 'w') as f:
+            json.dump(powerplay_session, f)
+            
+        logger.info(f"Saved PowerPlay session: {powerplay_session['power']}, "
+                   f"{powerplay_session['total_merits']} total merits, "
+                   f"{powerplay_session['session_merits']} session merits")
     except Exception as e:
-        result = (f"Connection failed! {e}")
-        lblMessage.config(fg="red")
-        #if(LOGGING_ENABLED == True):
-        logger.debug("Error", f"Connection failed: {e}")
-    return result
+        logger.error(f"Error saving PowerPlay session: {e}")
 
+def process_bounty_event(entry, data):
+    """Process Bounty events and format for the client"""
+    processed_data = {
+        'timestamp': entry.get('timestamp', ''),
+        'event': 'Bounty',
+        'eventType': 'Bounty',
+        'shipname': entry.get('Target_Localised', entry.get('Ship_Localised', 'Unknown')),
+        'Ship': entry.get('Target_Localised', entry.get('Ship_Localised', 'Unknown')),
+        'shipImageFileName': entry.get('Target', '').replace('-', '').replace(' ', '-'),
+        'bountyAmount': entry.get('TotalReward', 0),
+        'VictimFaction': entry.get('VictimFaction', 'Unknown'),
+        'Faction': entry.get('VictimFaction', 'Unknown'),
+        'Rewards': entry.get('Rewards', []),
+        'system': data.get('system', ''),
+        'station': data.get('station', ''),
+        'cmdr': data.get('cmdr', '')
+    }
+    return processed_data
 
+def process_faction_kill_bond_event(entry, data):
+    """Process FactionKillBond events and format for the client"""
+    processed_data = {
+        'timestamp': entry.get('timestamp', ''),
+        'event': 'FactionKillBond',
+        'eventType': 'FactionKillBond',
+        'shipname': '',
+        'shipType': '',
+        'shipImageFileName': '',
+        'bountyAmount': entry.get('Reward', 0),
+        'VictimFaction': entry.get('VictimFaction', 'Unknown'),
+        'AwardingFaction': entry.get('AwardingFaction', 'Unknown'),
+        'system': data.get('system', ''),
+        'station': data.get('station', ''),
+        'cmdr': data.get('cmdr', '')
+    }
+    return processed_data
 
+def process_ship_targeted_event(entry, data):
+    """Process ShipTargeted events and format for the client"""
+    # Only process if the target is locked and has a bounty
+    if not entry.get('TargetLocked', False):
+        return None
+        
+    bounty = entry.get('Bounty', 0)
     
+    # Skip low value targets
+    if bounty < 500000:
+        return None
+        
+    processed_data = {
+        'timestamp': entry.get('timestamp', ''),
+        'event': 'ShipTargeted',
+        'eventType': 'ShipTargeted',
+        'Ship': entry.get('Ship', entry.get('Target', 'Unknown')),
+        'shipname': entry.get('Ship_Localised', entry.get('Target_Localised', 'Unknown')),
+        'shipImageFileName': '',
+        'bountyAmount': bounty,
+        'VictimFaction': f"{entry.get('PilotName_Localised', entry.get('PilotName', ''))}:" +
+                         f" ({entry.get('PilotRank', '')})",
+        'Faction': entry.get('Faction', 'Unknown'),
+        'PilotName': entry.get('PilotName_Localised', entry.get('PilotName', '')),
+        'LegalStatus': entry.get('LegalStatus', ''),
+        'PilotRank': entry.get('PilotRank', ''),
+        'system': data.get('system', ''),
+        'station': data.get('station', ''),
+        'cmdr': data.get('cmdr', '')
+    }
+    return processed_data
 
-def cbLocalHostClicked(edtIPAddress,localhost_var,ip_var,lblServer):
-        #global localhost_var
-        #global ip_var
-        if (localhost_var == True):
-            ip_var.set( '127.0.0.1')
-            result = "Use Localhost"
+def process_powerplay_merits_event(entry, data):
+    """Process PowerplayMerits events, update session data, and format for the client"""
+    global powerplay_session
+    
+    power = entry.get('Power', 'Unknown Power')
+    merits_gained = entry.get('MeritsGained', 0)
+    total_merits = entry.get('TotalMerits', 0)
+    
+    # Update session data
+    if powerplay_session['power'] != power:
+        # Reset session if power changed
+        powerplay_session['session_merits'] = merits_gained
+    else:
+        # Add to existing session
+        powerplay_session['session_merits'] += merits_gained
+    
+    powerplay_session['power'] = power
+    powerplay_session['total_merits'] = total_merits
+    
+    # Save updated session
+    save_powerplay_session()
+    
+    processed_data = {
+        'timestamp': entry.get('timestamp', ''),
+        'event': 'PowerplayMerits',
+        'eventType': 'PowerplayMerits',
+        'Power': power,
+        'power': power,
+        'MeritsGained': merits_gained,
+        'TotalMerits': total_merits,
+        'meritsGained': merits_gained,  # Duplicate with lowercase for client consistency
+        'totalMerits': total_merits,    # Duplicate with lowercase for client consistency
+        'bountyAmount': merits_gained,  # Using merits gained as bounty amount for display
+        'Ship': 'None',
+        'shipname': 'None',
+        'VictimFaction': power,  # Using Power as VictimFaction for display
+        'AwardingFaction': power,  # Using Power as AwardingFaction for display
+        'system': data.get('system', ''),
+        'station': data.get('station', ''),
+        'cmdr': data.get('cmdr', ''),
+        'sessionMerits': powerplay_session['session_merits']
+    }
+    return processed_data
+
+@app.route('/')
+def home():
+    return render_template('table.html')
+
+@app.route('/new_kill', methods=['POST'])
+def update_kills():
+    try:
+        data = request.json
+        logger.info(f"Received event: {data.get('event', 'Unknown')}")
+        
+        # Extract the raw entry data
+        entry = data.get('entry', {})
+        event_type = entry.get('event', '')
+        
+        # Empty response for unsupported event types
+        processed_data = None
+        
+        # Process based on event type
+        if event_type == 'Bounty':
+            processed_data = process_bounty_event(entry, data)
+            socketio.emit('new_kill', processed_data)
+            
+        elif event_type == 'FactionKillBond':
+            processed_data = process_faction_kill_bond_event(entry, data)
+            socketio.emit('new_kill', processed_data)
+            
+        elif event_type == 'ShipTargeted':
+            processed_data = process_ship_targeted_event(entry, data)
+            if processed_data:
+                socketio.emit('new_kill', processed_data)
+            
+        elif event_type == 'PowerplayMerits':
+            processed_data = process_powerplay_merits_event(entry, data)
+            socketio.emit('powerplay_merits', processed_data)
+        
+        # Test event
+        elif event_type == 'test':
+            socketio.emit('new_test', data)
+            return jsonify({'success': True, 'data': data})
+            
+        # Return a response based on whether the event was processed
+        if processed_data:
+            return jsonify({'success': True, 'data': processed_data})
         else:
-             ip_var.set(get_current_ip())
-             result = "Use dedicated IP"
+            return jsonify({'success': False, 'message': f'Unsupported event type: {event_type}'})
+    except Exception as e:
+        logger.error(f"Error processing event: {e}")
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
 
-        target_url_var  = "Server Address: http://" + f"{ip_var.get()}" + ":" + f"{port_var.get()}"
-        lblServer["text"] = target_url_var
-             
+@app.route('/powerplay_merits', methods=['POST'])
+def update_powerplay():
+    try:
+        data = request.json
+        logger.info(f"Received PowerplayMerits: {data}")
+        
+        # We're now handling all events through the main endpoint,
+        # but keep this endpoint for backward compatibility
+        entry = data.get('entry', data)  # Use data as entry if no entry field
+        processed_data = process_powerplay_merits_event(entry, data)
+        
+        socketio.emit('powerplay_merits', processed_data)
+        return jsonify({'success': True, 'data': processed_data})
+    except Exception as e:
+        logger.error(f"Error processing PowerplayMerits: {e}")
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
 
-        return result
+@app.route('/speech_enable', methods=['GET'])
+def speech_enable():    
+    socketio.emit('speech_enable')
+    return jsonify({'success': True})
 
+@app.route('/speech_disable', methods=['GET'])
+def speech_disable():    
+    socketio.emit('speech_disable')
+    return jsonify({'success': True})
 
-def cbSpeechClicked(speech_var):
-    global ip_var
-    global port_var
-    parsed_host = ip_var.get()
-    parsed_port = port_var.get()
-    scheme = "http"    
+@app.route('/test_server', methods=['GET'])
+def test_server():    
+    socketio.emit('test_server')
+    return jsonify({'success': True})
 
-    if (speech_var == True):
-        result = "Speech Enabled"
-        url = f"{scheme}://{parsed_host}:{parsed_port}/speech_enable"
-        response = requests.get(url)
-        if response.status_code == 200:
-              result = ("Speech Enabled!")
-    else:
-        result = "Speech Disabled"
-        url = f"{scheme}://{parsed_host}:{parsed_port}/speech_disable"
-        response = requests.get(url)        
-        if response.status_code == 200:
-              result = ("Speech Disabled!")
-    return result
-
-def cbLoggingClicked(logging_var):
-    if (logging_var == True):
-        result = "Logging Enabled" 
-    else:
-        result = "Logging Disabled"        
-    return result
-
-
-
-
-#def get_current_ip(url_entry, port_entry, logging_var):
-def get_current_ip():
-    ip = socket.gethostbyname(socket.gethostname())
-    return ip
+if __name__ == '__main__':
+    # Load existing PowerPlay session data if available
+    load_powerplay_session()
+    
+    host = '127.0.0.1' if localhost else '0.0.0.0'
+    port = 5050
+    
+    logger.info(f"Starting server on {host}:{port}")
+    socketio.run(app, host=host, port=port, debug=True)
