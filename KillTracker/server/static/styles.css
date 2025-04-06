@@ -676,3 +676,362 @@ th:nth-child(3), td:nth-child(3) {
   color: #4CAF50;
   font-weight: 600;
 }
+
+/* PowerPlay Widget Styles - Add to styles.css */
+
+:root {
+  --elite-orange: #ff7100;
+  --elite-blue: #00a2ff;
+  --elite-dark: #111215;
+  --elite-gray: #2a2c31;
+  --elite-light: #7b8288;
+}
+
+.powerplay-widget {
+  background-color: var(--mid-bg);
+  border: 1px solid var(--ed-orange);
+  border-radius: 2px;
+  box-shadow: 0 0 5px rgba(255, 165, 0, 0.3);
+  overflow: hidden;
+  font-family: 'Rajdhani', sans-serif;
+  margin-top: 0.2rem;
+}
+
+.widget-header {
+  background-color: rgba(255, 165, 0, 0.1);
+  padding: 0.3rem;
+  border-bottom: 1px solid var(--ed-orange);
+  display: flex;
+  align-items: center;
+}
+
+.power-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-right: 0.5rem;
+  border: 1px solid var(--ed-orange);
+  border-radius: 50%;
+  background-color: var(--light-bg);
+}
+
+.power-info {
+  flex-grow: 1;
+}
+
+.power-name {
+  color: var(--ed-orange);
+  font-size: 0.85rem;
+  font-weight: bold;
+  margin: 0;
+}
+
+.power-level {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.widget-content {
+  padding: 0.3rem;
+}
+
+.merit-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 165, 0, 0.2);
+  padding-bottom: 0.3rem;
+}
+
+.merit-box {
+  text-align: center;
+  width: 48%;
+}
+
+.merit-label {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.merit-value {
+  font-size: 0.85rem;
+  color: #fff;
+  margin-top: 0.1rem;
+}
+
+.merit-breakdown {
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 165, 0, 0.2);
+  padding-bottom: 0.3rem;
+}
+
+.breakdown-title {
+  color: var(--text-secondary);
+  font-size: 0.65rem;
+  margin-bottom: 0.3rem;
+  text-transform: uppercase;
+}
+
+.breakdown-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.2rem;
+}
+
+.activity-label {
+  width: 5rem;
+  font-size: 0.7rem;
+  color: #fff;
+}
+
+.activity-bar-container {
+  flex-grow: 1;
+  height: 0.75rem;
+  background-color: var(--elite-gray);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.activity-bar {
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.activity-bar.trading {
+  background: linear-gradient(90deg, #3EFD71 0%, #00A2FF 100%);
+}
+
+.activity-bar.bounty {
+  background: linear-gradient(90deg, #FFD700 0%, #FF7100 100%);
+}
+
+.activity-bar.combat {
+  background: linear-gradient(90deg, #FF0000 0%, #8B0000 100%);
+}
+
+.activity-bar.fortification {
+  background: linear-gradient(90deg, #800080 0%, #4B0082 100%);
+}
+
+.activity-bar.other {
+  background: linear-gradient(90deg, #888888 0%, #444444 100%);
+}
+
+.activity-value {
+  position: absolute;
+  right: 0.2rem;
+  font-size: 0.6rem;
+  color: white;
+  line-height: 0.75rem;
+  text-shadow: 0 0 2px black, 0 0 2px black;
+}
+
+.progress-section {
+  margin-bottom: 0.5rem;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  margin-bottom: 0.2rem;
+}
+
+.progress-title {
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.progress-counter {
+  color: var(--ed-orange);
+}
+
+.progress-bar-outer {
+  width: 100%;
+  height: 0.6rem;
+  background-color: var(--elite-gray);
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 165, 0, 0.2);
+}
+
+.progress-bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ed-orange) 0%, #FFD700 100%);
+  width: 0%;
+}
+
+.widget-footer {
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 0.2rem 0.3rem;
+  text-align: right;
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  border-top: 1px solid rgba(255, 165, 0, 0.1);
+}
+
+/* Animation for progress bar */
+@keyframes pulse {
+  0% { opacity: 0.8; }
+  50% { opacity: 1; }
+  100% { opacity: 0.8; }
+}
+
+.progress-bar-inner {
+  animation: pulse 2s infinite;
+}
+
+/* Inventory section styles for PowerPlay widget */
+.inventory-section {
+  margin-bottom: 0.5rem;
+}
+
+.inventory-title {
+  color: var(--text-secondary);
+  font-size: 0.65rem;
+  margin-bottom: 0.3rem;
+  text-transform: uppercase;
+}
+
+.inventory-list {
+  max-height: 7rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ed-orange) var(--elite-gray);
+}
+
+/* Elite-style scrollbar for the inventory list */
+.inventory-list::-webkit-scrollbar {
+  width: 0.3rem;
+}
+
+.inventory-list::-webkit-scrollbar-track {
+  background: var(--elite-gray); 
+}
+
+.inventory-list::-webkit-scrollbar-thumb {
+  background: var(--ed-orange); 
+}
+
+.inventory-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.2rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.7rem;
+}
+
+.item-name {
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80%;
+}
+
+.item-qty {
+  color: var(--elite-blue);
+  font-weight: bold;
+}
+
+/* Remove animation and replace with static gradient */
+.progress-bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ed-orange) 0%, #FFD700 100%);
+  width: 0%;
+  /* Remove animation */
+  animation: none;
+}
+
+/* Enhance power icon */
+.power-icon {
+  width: 1.8rem;
+  height: 1.8rem;
+  margin-right: 0.5rem;
+  border: 1px solid var(--ed-orange);
+  border-radius: 50%;
+  background-color: var(--light-bg);
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 0 3px rgba(255, 165, 0, 0.5);
+}
+
+/* Enhance gradient for progress bar */
+.progress-bar-inner {
+  background: linear-gradient(90deg, 
+      var(--ed-orange) 0%, 
+      #FFD700 50%, 
+      var(--elite-blue) 100%);
+  transition: width 0.5s ease-out;
+}
+
+/* Better styling for the progress counter */
+.progress-counter {
+  color: var(--elite-blue);
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+/* Add some subtle shading to activity bars */
+.activity-bar.trading {
+  background: linear-gradient(90deg, rgba(62, 253, 113, 0.8) 0%, rgba(0, 162, 255, 0.8) 100%);
+  box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+.activity-bar.bounty {
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.8) 0%, rgba(255, 113, 0, 0.8) 100%);
+  box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+.activity-bar.combat {
+  background: linear-gradient(90deg, rgba(255, 0, 0, 0.8) 0%, rgba(139, 0, 0, 0.8) 100%);
+  box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+.activity-bar.fortification {
+  background: linear-gradient(90deg, rgba(128, 0, 128, 0.8) 0%, rgba(75, 0, 130, 0.8) 100%);
+  box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+.activity-bar.other {
+  background: linear-gradient(90deg, rgba(136, 136, 136, 0.8) 0%, rgba(68, 68, 68, 0.8) 100%);
+  box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Improve widget-toggle styling */
+.widget-toggle {
+  text-align: right;
+  margin-top: 0.4rem;
+}
+
+/* Improve widget header */
+.widget-header {
+  background: linear-gradient(90deg, 
+      rgba(255, 165, 0, 0.2) 0%, 
+      rgba(255, 165, 0, 0.1) 100%);
+}
+
+/* Add separator lines between sections */
+.merit-stats, .merit-breakdown, .progress-section, .inventory-section {
+  position: relative;
+}
+
+.merit-stats::after, .merit-breakdown::after, .progress-section::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 5%;
+  width: 90%;
+  height: 1px;
+  background: linear-gradient(90deg, 
+      transparent 0%, 
+      rgba(255, 165, 0, 0.3) 20%, 
+      rgba(255, 165, 0, 0.3) 80%, 
+      transparent 100%);
+}

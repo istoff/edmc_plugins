@@ -38,6 +38,98 @@ powerplay_session = {
     }
 }
 
+# Update the powerplay_session structure near the top of server.py
+powerplay_session = {
+    'power': None,
+    'total_merits': 0,
+    'session_merits': 0,
+    'merit_sources': {
+        'Trading': 0,
+        'Bounty Hunting': 0,
+        'Ground Combat': 0,
+        'Fortification': 0,
+        'Other': 0
+    },
+    'last_updated': None
+}
+
+# Modify the process_powerplay_merits_event function to handle merit sources
+def process_powerplay_merits_event(entry, data):
+    """Process PowerplayMerits events, update session data, and format for the client"""
+    global powerplay_session
+    
+    power = entry.get('Power', 'Unknown Power')
+    merits_gained = entry.get('MeritsGained', 0)
+    total_merits = entry.get('TotalMerits', 0)
+    
+    # Get merit source from the entry if available, otherwise use 'Other'
+    merit_source = entry.get('meritSource', 'Other')
+    
+    # Update session data
+    if powerplay_session['power'] != power:
+        # Reset session if power changed
+        powerplay_session['session_merits'] = merits_gained
+        powerplay_session['merit_sources'] = {
+            'Trading': 0,
+            'Bounty Hunting': 0,
+            'Ground Combat': 0,
+            'Fortification': 0,
+            'Other': 0
+        }
+        powerplay_session['merit_sources'][merit_source] = merits_gained
+    else:
+        # Add to existing session
+        powerplay_session['session_merits'] += merits_gained
+        
+        # Update merit source count
+        if merit_source in powerplay_session['merit_sources']:
+            powerplay_session['merit_sources'][merit_source] += merits_gained
+        else:
+            powerplay_session['merit_sources'][merit_source] = merits_gained
+    
+    powerplay_session['power'] = power
+    powerplay_session['total_merits'] = total_merits
+    
+    # If client sent all merit sources, use those instead (will happen when EDMC plugin sends data)
+    if 'meritSources' in entry and isinstance(entry['meritSources'], dict):
+        powerplay_session['merit_sources'] = entry['meritSources']
+    
+    # Save updated session
+    save_powerplay_session()
+    
+    # Calculate percentages for visualization
+    total_session_merits = powerplay_session['session_merits'] if powerplay_session['session_merits'] > 0 else 1
+    merit_percentages = {
+        source: (count / total_session_merits) * 100 
+        for source, count in powerplay_session['merit_sources'].items()
+    }
+    
+    processed_data = {
+        'timestamp': entry.get('timestamp', ''),
+        'event': 'PowerplayMerits',
+        'eventType': 'PowerplayMerits',
+        'Power': power,
+        'power': power,
+        'MeritsGained': merits_gained,
+        'TotalMerits': total_merits,
+        'meritsGained': merits_gained,  # Duplicate with lowercase for client consistency
+        'totalMerits': total_merits,    # Duplicate with lowercase for client consistency
+        'bountyAmount': merits_gained,  # Using merits gained as bounty amount for display
+        'Ship': 'None',
+        'shipname': 'None',
+        'VictimFaction': power,  # Using Power as VictimFaction for display
+        'AwardingFaction': power,  # Using Power as AwardingFaction for display
+        'system': data.get('system', ''),
+        'station': data.get('station', ''),
+        'cmdr': data.get('cmdr', ''),
+        'sessionMerits': powerplay_session['session_merits'],
+        'meritSource': merit_source,  # Add merit source
+        'meritSources': powerplay_session['merit_sources'],  # Add all merit sources for the session
+        'meritPercentages': merit_percentages  # Add percentages for visualization
+    }
+    return processed_data
+
+
 # Path to session storage file
 session_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../powerplay_session.json')
 
@@ -50,6 +142,17 @@ def load_powerplay_session():
             with open(session_file, 'r') as f:
                 data = json.load(f)
                 powerplay_session = data
+                
+                # Initialize merit_sources if it doesn't exist
+                if 'merit_sources' not in powerplay_session:
+                    powerplay_session['merit_sources'] = {
+                        'Trading': 0,
+                        'Bounty Hunting': 0,
+                        'Ground Combat': 0,
+                        'Fortification': 0,
+                        'Other': 0
+                    }
+                
                 logger.info(f"Loaded PowerPlay session: {powerplay_session['power']}, "
                            f"{powerplay_session['total_merits']} total merits")
         except Exception as e:
@@ -217,94 +320,6 @@ def process_ship_locker_event(entry, data):
         'station': data.get('station', ''),
         'cmdr': data.get('cmdr', '')
     }
-
-def process_powerplay_merits_event(entry, data):
-    """Process PowerplayMerits events, update session data, and format for the client"""
-    global powerplay_session
-    
-    power = entry.get('Power', 'Unknown Power')
-    merits_gained = entry.get('MeritsGained', 0)
-    total_merits = entry.get('TotalMerits', 0)
-    
-    # Default activity type and commodity data
-    activity_type = entry.get('activity_type', data.get('activity_type', 'other'))
-    commodity = entry.get('commodity', data.get('commodity'))
-    tons = entry.get('tons', data.get('tons', 0))
-    
-    # Initialize activities if not present
-    if 'activities' not in powerplay_session:
-        powerplay_session['activities'] = {
-            'cargo_sold': {},
-            'space_combat': 0,
-            'ground_combat': 0,
-            'ship_scanned': 0,
-            'other': 0
-        }
-    
-    # Update session data
-    if powerplay_session['power'] != power:
-        # Reset session if power changed
-        powerplay_session['session_merits'] = merits_gained
-        powerplay_session['activities'] = {
-            'cargo_sold': {},
-            'space_combat': 0,
-            'ground_combat': 0,
-            'ship_scanned': 0,
-            'other': 0
-        }
-    else:
-        # Add to existing session
-        powerplay_session['session_merits'] += merits_gained
-    
-    # Track merits by activity type
-    try:
-        if activity_type == 'cargo_sold' and commodity:
-            if commodity not in powerplay_session['activities']['cargo_sold']:
-                powerplay_session['activities']['cargo_sold'][commodity] = {
-                    'tons': 0,
-                    'merits': 0
-                }
-            powerplay_session['activities']['cargo_sold'][commodity]['tons'] += tons
-            powerplay_session['activities']['cargo_sold'][commodity]['merits'] += merits_gained
-        elif activity_type in powerplay_session['activities']:
-            powerplay_session['activities'][activity_type] += merits_gained
-        else:
-            powerplay_session['activities']['other'] += merits_gained
-    except KeyError as e:
-        logger.error(f"Error tracking activity type {activity_type}: {e}")
-        powerplay_session['activities']['other'] += merits_gained
-    
-    powerplay_session['power'] = power
-    powerplay_session['total_merits'] = total_merits
-    
-    # Save updated session
-    save_powerplay_session()
-    
-    processed_data = {
-        'timestamp': entry.get('timestamp', ''),
-        'event': 'PowerplayMerits',
-        'eventType': 'PowerplayMerits',
-        'Power': power,
-        'power': power,
-        'MeritsGained': merits_gained,
-        'TotalMerits': total_merits,
-        'meritsGained': merits_gained,
-        'totalMerits': total_merits,
-        'bountyAmount': merits_gained,
-        'Ship': 'None',
-        'shipname': 'None',
-        'VictimFaction': power,
-        'AwardingFaction': power,
-        'system': data.get('system', ''),
-        'station': data.get('station', ''),
-        'cmdr': data.get('cmdr', ''),
-        'sessionMerits': powerplay_session['session_merits'],
-        'activityType': activity_type,
-        'commodity': commodity,
-        'tons': tons,
-        'activities': powerplay_session['activities']
-    }
-    return processed_data
 
 @app.route('/')
 def home():
