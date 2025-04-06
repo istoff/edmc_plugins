@@ -65,9 +65,71 @@ socket.on('test_server', () => {
 });
 
 // Data event listeners - most important part of the application
-socket.on('powerplay_merits', function(data) {
-  console.log('Received PowerplayMerits event:', data);
-  handleNewKillData(data);
+    socket.on('powerplay_activity', function(data) {
+        if (data.meritsGained >= 100) {
+            // Only show significant merit gains
+            data.description = getActivityDescription(data);
+            addKillToTable(data, 'powerplay');
+        }
+    });
+
+    socket.on('powerplay_cargo', function(data) {
+        // Will be handled by the summary table
+    });
+
+    socket.on('powerplay_summary', function(data) {
+        updatePowerplaySummary(data);
+    });
+
+    function getActivityDescription(data) {
+        switch(data.activityType) {
+            case 'space_combat': return 'Space Combat';
+            case 'ground_combat': return 'Ground Combat';
+            case 'ship_scanned': return 'Ship Scanned';
+            case 'cargo_sold': 
+                return `Cargo Sold: ${data.commodity} (${data.tons} tons)`;
+            default: return 'Other Activity';
+        }
+    }
+
+    function updatePowerplaySummary(data) {
+        const summaryTable = document.getElementById('powerplay-summary');
+        // Clear existing rows
+        while (summaryTable.rows.length > 1) {
+            summaryTable.deleteRow(1);
+        }
+
+        // Add cargo sales
+        for (const [commodity, details] of Object.entries(data.activities.cargo_sold)) {
+            const row = summaryTable.insertRow();
+            row.insertCell(0).textContent = 'Cargo Sold';
+            row.insertCell(1).textContent = commodity;
+            row.insertCell(2).textContent = details.tons;
+            row.insertCell(3).textContent = details.merits;
+        }
+
+        // Add other activities
+        for (const [activity, merits] of Object.entries(data.activities)) {
+            if (activity !== 'cargo_sold' && merits > 0) {
+                const row = summaryTable.insertRow();
+                row.insertCell(0).textContent = activity.split('_').map(w => 
+                    w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                row.insertCell(1).textContent = '';
+                row.insertCell(2).textContent = '';
+                row.insertCell(3).textContent = merits;
+            }
+        }
+
+        // Add totals
+        const totalRow = summaryTable.insertRow();
+        totalRow.insertCell(0).textContent = 'Total Session';
+        totalRow.insertCell(1).textContent = '';
+        totalRow.insertCell(2).textContent = '';
+        totalRow.insertCell(3).textContent = data.session_merits;
+    }
+socket.on('powerplay_commodities', function(data) {
+  console.log('Received PowerplayCommodities event:', data);
+  updatePowerPlayCommodities(data);
 });
 socket.on('new_kill', handleNewKillData);
 socket.on('new_test', handleTestData);
@@ -675,79 +737,93 @@ function updateSummaryTables(killData) {
 /**
  * Update the PowerPlay merits table
  */
+    function updatePowerPlayCommodities(commodityData) {
+        const meritsTable = document.getElementById('powerPlayMerits');
+        const commoditiesTable = document.getElementById('powerPlayCommodities');
+        
+        // Clear existing rows
+        while (meritsTable.rows.length > 1) {
+            meritsTable.deleteRow(1);
+        }
+        while (commoditiesTable.rows.length > 1) {
+            commoditiesTable.deleteRow(1);
+        }
+  
+  // Add activities data
+  for (const [activity, details] of Object.entries(commodityData.activities)) {
+    if (activity === 'cargo_sold') continue; // Handle cargo separately
+    
+    const row = activitiesTable.insertRow();
+    row.insertCell(0).textContent = activity.split('_').map(w => 
+      w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    row.insertCell(1).textContent = details;
+    row.insertCell(2).textContent = ''; // Events count would need to be tracked
+  }
+  
+  // Add cargo sold activities
+  for (const [commodity, details] of Object.entries(commodityData.activities.cargo_sold)) {
+    const row = activitiesTable.insertRow();
+    row.insertCell(0).textContent = `Trading ${commodity}`;
+    row.insertCell(1).textContent = details.merits;
+    row.insertCell(2).textContent = details.tons;
+  }
+
+  summarySection.appendChild(activitiesTable);
+  container.appendChild(summarySection);
+
+  // Create commodities section
+  const commoditiesSection = document.createElement('div');
+  commoditiesSection.className = 'powerplay-section';
+  
+  // Add header
+  const commHeader = document.createElement('h3');
+  commHeader.textContent = 'Commodity Inventory';
+  commoditiesSection.appendChild(commHeader);
+
+  // Add commodities table
+  const commTable = document.createElement('table');
+  commTable.className = 'powerplay-table';
+  
+  // Add table headers
+  const commHeaderRow = commTable.insertRow();
+  commHeaderRow.insertCell(0).textContent = 'Commodity';
+  commHeaderRow.insertCell(1).textContent = 'Qty';
+  commHeaderRow.insertCell(2).textContent = 'Projected Value';
+  
+  // Add commodities data
+  const categories = ['Items', 'Components', 'Consumables', 'Data'];
+  categories.forEach(category => {
+    if (commodityData[category] && commodityData[category].length > 0) {
+      commodityData[category].forEach(item => {
+        const row = commTable.insertRow();
+        row.insertCell(0).textContent = item.Name;
+        row.insertCell(1).textContent = item.Count;
+        
+        // Calculate projected value (placeholder - would need actual merit values)
+        const projectedValue = item.Count * 30; // Example 30 merits per unit
+        row.insertCell(2).textContent = projectedValue;
+      });
+    }
+  });
+
+  commoditiesSection.appendChild(commTable);
+  container.appendChild(commoditiesSection);
+
+  // Add totals section
+  const totalsSection = document.createElement('div');
+  totalsSection.className = 'powerplay-totals';
+  
+  totalsSection.innerHTML = `
+    <div>Total Merits Earned: ${commodityData.session_merits || 0}</div>
+    <div>Total Merits In Inventory: ${commodityData.total_merits || 0}</div>
+  `;
+  
+  container.appendChild(totalsSection);
+}
+
 function updatePowerPlayTable(killData) {
-  const powerPlayTable = document.getElementById('powerPlayMerits');
-  if (!powerPlayTable) return;
-  
-  const power = killData.Power;
-  const meritsGained = killData.meritsGained || 0;
-  const totalMerits = killData.totalMerits || 0;
-  
-  let row = powerPlayTable.rows.namedItem(power);
-  
-  // Remove existing footer row if it exists
-  if (powerPlayTable.tFoot) {
-    powerPlayTable.removeChild(powerPlayTable.tFoot);
-  }
-  
-  if (!row) {
-    // Create new row for this power
-    row = powerPlayTable.insertRow(-1);
-    row.id = power;
-    
-    let nameCell = row.insertCell(0);
-    nameCell.textContent = power;
-    
-    let meritCell = row.insertCell(1);
-    meritCell.style.textAlign = "right";
-    meritCell.textContent = totalMerits;
-    
-    let countCell = row.insertCell(2);
-    countCell.style.textAlign = "right";
-    countCell.textContent = 1;
-    
-    // Store the highest total merits as a data attribute on the row
-    row.setAttribute('data-highest-merits', totalMerits);
-  } else {
-    // Update existing row with new merits count
-    let countCell = row.cells[2];
-    let currentCount = parseInt(countCell.textContent || 0);
-    countCell.textContent = currentCount + 1;
-    
-    // Update total merits to the latest value
-    row.cells[1].textContent = totalMerits;
-    
-    // Update highest merits if the current total is higher
-    let highestMerits = parseInt(row.getAttribute('data-highest-merits') || 0);
-    if (totalMerits > highestMerits) {
-      row.setAttribute('data-highest-merits', totalMerits);
-    }
-  }
-  
-  // Create and insert footer row with totals
-  const tfoot = powerPlayTable.createTFoot();
-  const footerRow = tfoot.insertRow(-1);
-  let totalEvents = 0;
-  
-  // Calculate total events across all powers
-  for (let i = 1; i < powerPlayTable.rows.length - 1; i++) {
-    if (powerPlayTable.rows[i].cells.length >= 3) {
-      totalEvents += parseInt(powerPlayTable.rows[i].cells[2].textContent || 0);
-    }
-  }
-  
-  footerRow.insertCell(0).innerText = 'Total';
-  const footerTotalMeritsCell = footerRow.insertCell(1);
-  const footerTotalEventsCell = footerRow.insertCell(2);
-  footerTotalMeritsCell.innerText = '-'; // No meaningful total for merits across powers
-  footerTotalEventsCell.innerText = totalEvents;
-  footerTotalMeritsCell.style.textAlign = "right";
-  footerTotalEventsCell.style.textAlign = "right";
-  
-  // Apply the footer-row class to all cells in the footer row
-  footerRow.cells[0].classList.add("footer-row");
-  footerTotalMeritsCell.classList.add("footer-row");
-  footerTotalEventsCell.classList.add("footer-row");
+  // This function is now handled by updatePowerPlayCommodities
+  // We'll keep it empty to maintain compatibility with existing code
 }
 
 /**

@@ -28,7 +28,14 @@ powerplay_session = {
     'power': None,
     'total_merits': 0,
     'session_merits': 0,
-    'last_updated': None
+    'last_updated': None,
+    'activities': {
+        'cargo_sold': {},  # {commodity: {'tons': x, 'merits': y}}
+        'space_combat': 0,
+        'ground_combat': 0, 
+        'ship_scanned': 0,
+        'other': 0
+    }
 }
 
 # Path to session storage file
@@ -132,6 +139,85 @@ def process_ship_targeted_event(entry, data):
     }
     return processed_data
 
+def process_ship_locker_event(entry, data):
+    """Process ShipLocker events and extract relevant commodities for powerplay"""
+    relevant_items = {
+        'Items': [],
+        'Components': [],
+        'Consumables': [],
+        'Data': []
+    }
+    
+    # Define which commodities we care about for powerplay (sorted by merit value descending)
+    powerplay_items = {
+        'Data': [
+            # Special Intelligence Items (15-25 merits)
+            'protectedresearchprotocol',
+            'sensitivefinancialrecord', 
+            'confidentialcorrespondence',
+            'strategicprojectiondata',
+            'tacticalintelligence',
+            
+            # Power Data Types (10-15 merits)
+            'powerintelligencedata',
+            'powerstrategicdata',
+            'powereconomicdata',
+            'powersecuritydata',
+            'powermilitarydata',
+            'powerindustrialdata',
+            'powerresearchdata',
+            'powerpoliticaldata',
+            'powerassociationdata',
+            
+            # Technology/Research (8-15 merits)
+            'advancedresearchmaterial',
+            'prototypetechnology',
+            'scientificbreakthrough',
+            'researchdatafragment',
+            'technicalspecification',
+            
+            # Resource Samples (5-12 merits)
+            'advancedresourceextract',
+            'syntheticmaterial',
+            'industrialcomposite',
+            'rareelementsample',
+            'mineralsample',
+            
+            # Biological/Agricultural (5-12 merits)
+            'enhancedagriculturalelements',
+            'geneticallymodifiedcrops',
+            'cultivatedspecimens',
+            'biologicalresidue',
+            'agriculturalsample'
+        ],
+        'Items': ['weaponschematic', 'buildingschematic'],
+        'Components': ['encryptedmemorychip', 'scrambler'],
+        'Consumables': ['amm_grenade_emp', 'amm_grenade_shield', 'bypass']
+    }
+    
+    # Filter the event data for relevant commodities
+    for category in ['Items', 'Components', 'Consumables', 'Data']:
+        if category in entry:
+            for item in entry[category]:
+                if item['Name'] in powerplay_items[category]:
+                    relevant_items[category].append({
+                        'Name': item.get('Name_Localised', item['Name']),
+                        'Count': item['Count']
+                    })
+    
+    return {
+        'timestamp': entry.get('timestamp', ''),
+        'event': 'ShipLocker',
+        'eventType': 'ShipLocker',
+        'Items': relevant_items['Items'],
+        'Components': relevant_items['Components'],
+        'Consumables': relevant_items['Consumables'],
+        'Data': relevant_items['Data'],
+        'system': data.get('system', ''),
+        'station': data.get('station', ''),
+        'cmdr': data.get('cmdr', '')
+    }
+
 def process_powerplay_merits_event(entry, data):
     """Process PowerplayMerits events, update session data, and format for the client"""
     global powerplay_session
@@ -140,13 +226,53 @@ def process_powerplay_merits_event(entry, data):
     merits_gained = entry.get('MeritsGained', 0)
     total_merits = entry.get('TotalMerits', 0)
     
+    # Default activity type and commodity data
+    activity_type = entry.get('activity_type', data.get('activity_type', 'other'))
+    commodity = entry.get('commodity', data.get('commodity'))
+    tons = entry.get('tons', data.get('tons', 0))
+    
+    # Initialize activities if not present
+    if 'activities' not in powerplay_session:
+        powerplay_session['activities'] = {
+            'cargo_sold': {},
+            'space_combat': 0,
+            'ground_combat': 0,
+            'ship_scanned': 0,
+            'other': 0
+        }
+    
     # Update session data
     if powerplay_session['power'] != power:
         # Reset session if power changed
         powerplay_session['session_merits'] = merits_gained
+        powerplay_session['activities'] = {
+            'cargo_sold': {},
+            'space_combat': 0,
+            'ground_combat': 0,
+            'ship_scanned': 0,
+            'other': 0
+        }
     else:
         # Add to existing session
         powerplay_session['session_merits'] += merits_gained
+    
+    # Track merits by activity type
+    try:
+        if activity_type == 'cargo_sold' and commodity:
+            if commodity not in powerplay_session['activities']['cargo_sold']:
+                powerplay_session['activities']['cargo_sold'][commodity] = {
+                    'tons': 0,
+                    'merits': 0
+                }
+            powerplay_session['activities']['cargo_sold'][commodity]['tons'] += tons
+            powerplay_session['activities']['cargo_sold'][commodity]['merits'] += merits_gained
+        elif activity_type in powerplay_session['activities']:
+            powerplay_session['activities'][activity_type] += merits_gained
+        else:
+            powerplay_session['activities']['other'] += merits_gained
+    except KeyError as e:
+        logger.error(f"Error tracking activity type {activity_type}: {e}")
+        powerplay_session['activities']['other'] += merits_gained
     
     powerplay_session['power'] = power
     powerplay_session['total_merits'] = total_merits
@@ -162,17 +288,21 @@ def process_powerplay_merits_event(entry, data):
         'power': power,
         'MeritsGained': merits_gained,
         'TotalMerits': total_merits,
-        'meritsGained': merits_gained,  # Duplicate with lowercase for client consistency
-        'totalMerits': total_merits,    # Duplicate with lowercase for client consistency
-        'bountyAmount': merits_gained,  # Using merits gained as bounty amount for display
+        'meritsGained': merits_gained,
+        'totalMerits': total_merits,
+        'bountyAmount': merits_gained,
         'Ship': 'None',
         'shipname': 'None',
-        'VictimFaction': power,  # Using Power as VictimFaction for display
-        'AwardingFaction': power,  # Using Power as AwardingFaction for display
+        'VictimFaction': power,
+        'AwardingFaction': power,
         'system': data.get('system', ''),
         'station': data.get('station', ''),
         'cmdr': data.get('cmdr', ''),
-        'sessionMerits': powerplay_session['session_merits']
+        'sessionMerits': powerplay_session['session_merits'],
+        'activityType': activity_type,
+        'commodity': commodity,
+        'tons': tons,
+        'activities': powerplay_session['activities']
     }
     return processed_data
 
@@ -214,6 +344,10 @@ def update_kills():
         elif event_type == 'PowerplayMerits':
             processed_data = process_powerplay_merits_event(entry, data)
             socketio.emit('powerplay_merits', processed_data)
+            
+        elif event_type == 'ShipLocker':
+            processed_data = process_ship_locker_event(entry, data)
+            socketio.emit('powerplay_commodities', processed_data)
         
         # Test event
         elif event_type == 'test':
