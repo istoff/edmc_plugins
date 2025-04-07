@@ -23,20 +23,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger('killtracker_server')
 
-# Session data for PowerPlay
-powerplay_session = {
-    'power': None,
-    'total_merits': 0,
-    'session_merits': 0,
-    'last_updated': None,
-    'activities': {
-        'cargo_sold': {},  # {commodity: {'tons': x, 'merits': y}}
-        'space_combat': 0,
-        'ground_combat': 0, 
-        'ship_scanned': 0,
-        'other': 0
-    }
-}
 
 # Update the powerplay_session structure near the top of server.py
 powerplay_session = {
@@ -53,7 +39,7 @@ powerplay_session = {
     'last_updated': None
 }
 
-# Modify the process_powerplay_merits_event function to handle merit sources
+
 def process_powerplay_merits_event(entry, data):
     """Process PowerplayMerits events, update session data, and format for the client"""
     global powerplay_session
@@ -65,7 +51,7 @@ def process_powerplay_merits_event(entry, data):
     # Get merit source from the entry if available, otherwise use 'Other'
     merit_source = entry.get('meritSource', 'Other')
     
-    # Update session data
+    # Update session data - preserving other merit sources
     if powerplay_session['power'] != power:
         # Reset session if power changed
         powerplay_session['session_merits'] = merits_gained
@@ -81,18 +67,32 @@ def process_powerplay_merits_event(entry, data):
         # Add to existing session
         powerplay_session['session_merits'] += merits_gained
         
-        # Update merit source count
-        if merit_source in powerplay_session['merit_sources']:
-            powerplay_session['merit_sources'][merit_source] += merits_gained
-        else:
-            powerplay_session['merit_sources'][merit_source] = merits_gained
+        # Update merit source count - initialize if not exists
+        if merit_source not in powerplay_session['merit_sources']:
+            powerplay_session['merit_sources'][merit_source] = 0
+        
+        # Add new merits to the appropriate source
+        powerplay_session['merit_sources'][merit_source] += merits_gained
     
     powerplay_session['power'] = power
     powerplay_session['total_merits'] = total_merits
     
-    # If client sent all merit sources, use those instead (will happen when EDMC plugin sends data)
+    # If client sent all merit sources, use those instead
+    # BUT ONLY IF it's a proper dictionary with expected sources
     if 'meritSources' in entry and isinstance(entry['meritSources'], dict):
-        powerplay_session['merit_sources'] = entry['meritSources']
+        # Verify it contains at least some of our expected keys
+        expected_keys = ['Trading', 'Bounty Hunting', 'Ground Combat', 'Fortification', 'Other']
+        has_expected_keys = any(key in entry['meritSources'] for key in expected_keys)
+        
+        if has_expected_keys:
+            powerplay_session['merit_sources'] = entry['meritSources']
+    elif 'meritSources' in data and isinstance(data['meritSources'], dict):
+        # Try to get merit sources from the data object if not in entry
+        expected_keys = ['Trading', 'Bounty Hunting', 'Ground Combat', 'Fortification', 'Other']
+        has_expected_keys = any(key in data['meritSources'] for key in expected_keys)
+        
+        if has_expected_keys:
+            powerplay_session['merit_sources'] = data['meritSources']
     
     # Save updated session
     save_powerplay_session()
@@ -127,8 +127,8 @@ def process_powerplay_merits_event(entry, data):
         'meritSources': powerplay_session['merit_sources'],  # Add all merit sources for the session
         'meritPercentages': merit_percentages  # Add percentages for visualization
     }
+    
     return processed_data
-
 
 # Path to session storage file
 session_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../powerplay_session.json')

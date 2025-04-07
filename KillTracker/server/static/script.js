@@ -189,7 +189,34 @@ window.togglePowerPlayView = function() {
 };
 
 
-// New function specifically for handling PowerplayMerits events
+
+// Function to get the current rank merit threshold
+function getCurrentRankThreshold(rank) {
+  if (rank <= 1) return 0;
+  if (rank === 2) return 2000;
+  if (rank === 3) return 5000;
+  if (rank === 4) return 9000;
+  if (rank === 5) return 15000;
+  
+  // For ranks 6-99
+  return 15000 + (rank - 5) * 8000;
+}
+
+// Function to get the next rank merit requirement
+function getNextRankThreshold(rank) {
+  if (rank === 100) return 775000; // Already at max rank
+  
+  if (rank === 1) return 2000;
+  if (rank === 2) return 5000;
+  if (rank === 3) return 9000;
+  if (rank === 4) return 15000;
+  if (rank === 5) return 23000;
+  
+  // For ranks 6-99
+  return 15000 + (rank - 5 + 1) * 8000;
+}
+
+// Function to handle PowerplayMerits data
 function handlePowerplayMeritsData(data) {
   console.log('Handling PowerplayMerits data:', data);
   
@@ -198,19 +225,36 @@ function handlePowerplayMeritsData(data) {
   window.totalMerits = data.TotalMerits || data.totalMerits || 0;
   window.sessionMerits = data.sessionMerits || 0;
   
-  // Update merit sources
-  if (data.meritSources) {
+  // Initialize meritSourcesData if it doesn't exist yet
+  if (!window.meritSourcesData) {
+    window.meritSourcesData = {
+      'Trading': 0,
+      'Bounty Hunting': 0,
+      'Ground Combat': 0,
+      'Fortification': 0,
+      'Other': 0
+    };
+  }
+  
+  // Update merit sources from server data - PRESERVE EXISTING VALUES
+  if (data.meritSources && typeof data.meritSources === 'object') {
+    // Use the server's complete merit sources data
+    console.log('Received complete merit sources from server:', data.meritSources);
     window.meritSourcesData = data.meritSources;
   } else if (data.meritSource) {
-    // If only a single merit source is provided
+    // If only a single merit source is provided, update just that one
     const source = data.meritSource;
     const meritsGained = data.MeritsGained || data.meritsGained || 0;
     
+    // Update the specific merit source WITHOUT resetting other sources
     if (window.meritSourcesData[source] !== undefined) {
       window.meritSourcesData[source] += meritsGained;
     } else {
       window.meritSourcesData['Other'] += meritsGained;
     }
+    
+    console.log(`Updated single merit source: ${source} (+${meritsGained}), now: ${window.meritSourcesData[source]}`);
+    console.log('Updated merit sources data:', window.meritSourcesData);
   }
   
   // Update PowerPlay commodities if provided
@@ -239,32 +283,6 @@ function handlePowerplayMeritsData(data) {
     sessionMerits: window.sessionMerits,
     meritSources: window.meritSourcesData
   });
-}
-
-// Function to get the current rank merit threshold
-function getCurrentRankThreshold(rank) {
-  if (rank <= 1) return 0;
-  if (rank === 2) return 2000;
-  if (rank === 3) return 5000;
-  if (rank === 4) return 9000;
-  if (rank === 5) return 15000;
-  
-  // For ranks 6-99
-  return 15000 + (rank - 5) * 8000;
-}
-
-// Function to get the next rank merit requirement
-function getNextRankThreshold(rank) {
-  if (rank === 100) return 775000; // Already at max rank
-  
-  if (rank === 1) return 2000;
-  if (rank === 2) return 5000;
-  if (rank === 3) return 9000;
-  if (rank === 4) return 15000;
-  if (rank === 5) return 23000;
-  
-  // For ranks 6-99
-  return 15000 + (rank - 5 + 1) * 8000;
 }
 
 
@@ -397,6 +415,7 @@ function getNextRankThreshold(rank) {
 
 // Function to update merit source breakdowns
 function updateMeritSourceBreakdown() {
+  console.log('Updating merit source breakdown with:', window.meritSourcesData);
 
   // Ensure we have merit sources data
   if (!window.meritSourcesData) {
@@ -410,20 +429,33 @@ function updateMeritSourceBreakdown() {
   }
 
   // Calculate total merits for percentages
-  const totalSessionMerits = Object.values(meritSourcesData).reduce((sum, value) => sum + value, 0) || 1;
+  const totalSessionMerits = Object.values(window.meritSourcesData).reduce((sum, value) => sum + value, 0) || 1;
   
   // Update each activity bar
-  for (const [source, merits] of Object.entries(meritSourcesData)) {
+  for (const [source, merits] of Object.entries(window.meritSourcesData)) {
     const percent = (merits / totalSessionMerits) * 100;
-    const barElement = document.getElementById(`powerPlayWidget${source.replace(/\s+/g, '')}Bar`);
-    const valueElement = document.getElementById(`powerPlayWidget${source.replace(/\s+/g, '')}Value`);
     
-    if (barElement) barElement.style.width = `${percent}%`;
-    if (valueElement) valueElement.textContent = merits.toLocaleString();
+    // Convert source name to a valid element ID by removing spaces
+    const sourceId = source.replace(/\s+/g, '');
+    
+    const barElement = document.getElementById(`powerPlayWidget${sourceId}Bar`);
+    const valueElement = document.getElementById(`powerPlayWidget${sourceId}Value`);
+    
+    if (barElement) {
+      barElement.style.width = `${percent}%`;
+      console.log(`Updated ${source} bar width to ${percent}%`);
+    } else {
+      console.warn(`Could not find bar element for source: ${source}, ID: powerPlayWidget${sourceId}Bar`);
+    }
+    
+    if (valueElement) {
+      valueElement.textContent = merits.toLocaleString();
+      console.log(`Updated ${source} value to ${merits}`);
+    } else {
+      console.warn(`Could not find value element for source: ${source}, ID: powerPlayWidget${sourceId}Value`);
+    }
   }
 }
-
-
 
 
 function getActivityDescription(data) {
@@ -672,23 +704,58 @@ function updateMeritSourcesVisualization() {
   updateMeritSourceBreakdown();
 }
 
-// Add function to update the merit source breakdown
+// Function to update merit source breakdowns
 function updateMeritSourceBreakdown() {
+  console.log('Updating merit source breakdown');
+
+  // Ensure we have merit sources data
+  if (!window.meritSourcesData) {
+    window.meritSourcesData = {
+      'Trading': 0,
+      'Bounty Hunting': 0,
+      'Ground Combat': 0,
+      'Fortification': 0,
+      'Other': 0
+    };
+  }
+
+  // Map merit source names (with spaces) to element ID suffixes (without spaces)
+  const sourceToElementMap = {
+    'Trading': 'Trading',
+    'Bounty Hunting': 'BountyHunting',
+    'Ground Combat': 'GroundCombat',
+    'Fortification': 'Fortification',
+    'Other': 'Other'
+  };
+
   // Calculate total merits for percentages
-  const totalSessionMerits = Object.values(meritSourcesData).reduce((sum, value) => sum + value, 0) || 1;
-
-  // Update each activity bar
-  for (const [source, merits] of Object.entries(meritSourcesData)) {
+  const totalSessionMerits = Object.values(window.meritSourcesData).reduce((sum, value) => sum + value, 0) || 1;
+  
+  // Update each activity bar using the correct element IDs
+  for (const [source, merits] of Object.entries(window.meritSourcesData)) {
     const percent = (merits / totalSessionMerits) * 100;
-    const barElement = document.getElementById(`powerPlayWidget${source.replace(/\s+/g, '')}Bar`);
-    const valueElement = document.getElementById(`powerPlayWidget${source.replace(/\s+/g, '')}Value`);
-
-    if (barElement) barElement.style.width = `${percent}%`;
-    if (valueElement) valueElement.textContent = merits.toLocaleString();
+    
+    // Get the correct element ID suffix for this source
+    const elementSuffix = sourceToElementMap[source] || source.replace(/\s+/g, '');
+    
+    const barElement = document.getElementById(`powerPlayWidget${elementSuffix}Bar`);
+    const valueElement = document.getElementById(`powerPlayWidget${elementSuffix}Value`);
+    
+    if (barElement) {
+      barElement.style.width = `${percent}%`;
+      console.log(`Updated ${source} bar width to ${percent}%`);
+    } else {
+      console.warn(`Could not find bar element for source: ${source}, ID: powerPlayWidget${elementSuffix}Bar`);
+    }
+    
+    if (valueElement) {
+      valueElement.textContent = merits.toLocaleString();
+      console.log(`Updated ${source} value to ${merits}`);
+    } else {
+      console.warn(`Could not find value element for source: ${source}, ID: powerPlayWidget${elementSuffix}Value`);
+    }
   }
 }
-
-
 
 function resetSessionMerits() {
   sessionMerits = 0;
