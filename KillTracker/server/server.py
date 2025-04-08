@@ -329,7 +329,7 @@ def home():
 def update_kills():
     try:
         data = request.json
-        logger.info(f"Received event: {data.get('event', 'Unknown')}")
+        #logger.info(f"Received event: {data.get('event', 'Unknown')}")
         # write to console
         print(f"Received event: {data.get('event', 'Unknown')}")
         

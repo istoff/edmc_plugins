@@ -21,7 +21,13 @@ SUPPORTED_EVENTS = [
     'FactionKillBond',
     'ShipTargeted',
     'PowerplayMerits',
-    'ShipLocker'
+    'ShipLocker',
+    'MarketBuy',
+    'MarketSell',
+    'CargoDepot',
+    'CargoTransfer',
+    'Cargo',
+    'SellOrganicData',
 ]
 
 # Event history buffer for context analysis
@@ -82,143 +88,6 @@ def send_event_data(event_data):
         if logging_var:
             logger.error(f'Web call failed: {str(e)}')
 
-def determine_powerplay_merit_source(entry: Dict[str, Any]) -> str:
-    """
-    Determine the source of PowerPlay merits by analyzing recent events
-    
-    Returns: 
-        str: One of "Trading", "Bounty Hunting", "Ground Combat", "Fortification", "Other"
-    """
-    # Analyze event history to determine merit source
-    if not event_history:
-        return "Other"
-    
-    # Check recent events for clues about the merit source
-    for past_event in list(event_history):
-        event_type = past_event.get('event', '')
-        
-        # Bounty or combat events preceding PowerplayMerits -> Bounty Hunting
-        if event_type in ['Bounty', 'FactionKillBond']:
-            return "Bounty Hunting"
-        
-        # Trading events
-        elif event_type in ['MarketBuy', 'MarketSell', 'CargoDepot']:
-            return "Trading"
-        
-        # Ground combat related events
-        elif event_type in ['SellOrganicData', 'FSSSignalDiscovered'] and 'War' in past_event.get('SignalName', ''):
-            return "Ground Combat"
-        
-        # Fortification related events
-        elif event_type in ['CargoTransfer', 'Cargo'] and 'garrison' in str(past_event).lower():
-            return "Fortification"
-    
-    # Default if no specific source identified
-    return "Other"
-
-def update_merit_sources(source: str, amount: int):
-    """Update the merit sources tracking dictionary"""
-    global merit_sources
-    if source in merit_sources:
-        merit_sources[source] += amount
-    else:
-        merit_sources["Other"] += amount
-
-def journal_entry(cmdr, is_beta, system, station, entry, state):
-    """Process journal entries and send relevant ones to the server."""
-    global event_history
-    
-    # Add to event history for context analysis
-    event_history.append(entry)
-    
-    event = entry.get('event')
-    
-    if event not in SUPPORTED_EVENTS:
-        return
-    
-    if logging_var:
-        logger.info(f'Detected event: {event}')
-        logger.info(entry)
-    
-    # For ShipTargeted events, only send if the target is locked
-    if event == 'ShipTargeted' and not entry.get('TargetLocked', False):
-        if logging_var:
-            logger.info("Ship Targeted event not sent, TargetLocked is False")
-        return
-    
-    # Create a basic data packet with the raw event data
-    event_data = {
-        'event': event,
-        'timestamp': entry.get('timestamp', ''),
-        'system': system,
-        'station': station,
-        'cmdr': cmdr,
-        'entry': entry  # Send the raw event data for server-side processing
-    }
-    
-    # Special processing for PowerplayMerits events
-    if event == 'PowerplayMerits':
-        
-        merits_gained = entry.get('MeritsGained', 0)
-        
-        # Determine the source of the merits
-        merit_source = determine_powerplay_merit_source(entry)
-        
-        # Update local tracking
-        update_merit_sources(merit_source, merits_gained)
-        
-        # Add merit source to the event data
-        event_data['meritSource'] = merit_source
-        event_data['meritSources'] = merit_sources
-        
-        if logging_var:
-            logger.info(f"PowerplayMerits event: {merits_gained} merits from {merit_source}")
-    
-    # Special processing for ShipLocker events
-    elif event == 'ShipLocker':
-        # Extract PowerPlay commodities from ship locker
-        powerplay_commodities = extract_powerplay_commodities(entry)
-        if powerplay_commodities:
-            event_data['powerplayCommodities'] = powerplay_commodities
-            if logging_var:
-                logger.info(f"Found {len(powerplay_commodities)} PowerPlay commodities in ship locker")
-    
-    # Send to server
-    send_event_data(event_data)
-
-def extract_powerplay_commodities(entry: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Extract PowerPlay commodities from ShipLocker event"""
-    commodities = []
-    
-    # Check relevant sections of the ship locker
-    sections = ['Items', 'Components', 'Consumables', 'Data']
-    
-    for section in sections:
-        if section in entry:
-            for item in entry[section]:
-                name = item.get('Name', '').lower()
-                name_localized = item.get('Name_Localised', '').lower()
-                
-                # Check if this might be a PowerPlay commodity
-                is_powerplay_item = False
-                powerplay_keywords = [
-                    'propaganda', 'aid', 'supply', 'supplies', 'prisoner', 'prisoners',
-                    'report', 'reports', 'slaves', 'political', 'intelligence', 
-                    'countermeasure', 'garrison', 'material', 'protocol'
-                ]
-                
-                for keyword in powerplay_keywords:
-                    if keyword in name or keyword in name_localized:
-                        is_powerplay_item = True
-                        break
-                
-                if is_powerplay_item:
-                    commodities.append({
-                        'name': item.get('Name_Localised', item.get('Name', '')),
-                        'count': item.get('Count', 0)
-                    })
-    
-    return commodities
 
 def plugin_prefs(parent: nb.Notebook, cmdr: str, is_beta: bool) -> Optional[tk.Frame]:
     """Create the preferences UI."""
@@ -411,3 +280,147 @@ def reset_merit_sources():
     global merit_sources
     for key in merit_sources:
         merit_sources[key] = 0
+
+
+def determine_powerplay_merit_source(entry: Dict[str, Any]) -> str:
+    """
+    Determine the source of PowerPlay merits by analyzing recent events
+    
+    Returns: 
+        str: One of "Trading", "Bounty Hunting", "Ground Combat", "Fortification", "Other"
+    """
+    # Analyze event history to determine merit source
+    if not event_history:
+        return "Other"
+    
+    # Check recent events for clues about the merit source
+    for past_event in list(event_history):
+        event_type = past_event.get('event', '')
+        
+        # Bounty or combat events preceding PowerplayMerits -> Bounty Hunting
+        if event_type in ['Bounty', 'ShipTargeted','FactionKillBond']:
+            return "Bounty Hunting"
+        
+        # Trading events
+        elif event_type in ['MarketBuy', 'MarketSell', 'CargoDepot']:
+            return "Trading"
+        
+        # Ground combat related events
+        elif event_type in ['SellOrganicData', 'FSSSignalDiscovered'] and 'War' in past_event.get('SignalName', ''):
+            return "Ground Combat"
+        
+        # Fortification related events
+        elif event_type in ['CargoTransfer', 'Cargo'] and 'garrison' in str(past_event).lower():
+            return "Fortification"
+    
+    # Default if no specific source identified
+    return "Other"
+
+def update_merit_sources(source: str, amount: int):
+    """Update the merit sources tracking dictionary"""
+    global merit_sources
+    if source in merit_sources:
+        merit_sources[source] += amount
+    else:
+        merit_sources["Other"] += amount
+
+def journal_entry(cmdr, is_beta, system, station, entry, state):
+    """Process journal entries and send relevant ones to the server."""
+    global event_history
+    global merit_source
+    global merit_sources
+
+    
+    # Add to event history for context analysis
+    event_history.append(entry)
+    
+    event = entry.get('event')
+    
+    if event not in SUPPORTED_EVENTS:
+        return
+    
+    if logging_var:
+        logger.info(f'Detected event: {event}')
+        logger.info(entry)
+    
+    # For ShipTargeted events, only send if the target is locked
+    if event == 'ShipTargeted' and not entry.get('TargetLocked', False):
+        if logging_var:
+            logger.info("Ship Targeted event not sent, TargetLocked is False")
+        return
+    
+    # Create a basic data packet with the raw event data
+    event_data = {
+        'event': event,
+        'timestamp': entry.get('timestamp', ''),
+        'system': system,
+        'station': station,
+        'cmdr': cmdr,
+        'entry': entry  # Send the raw event data for server-side processing
+    }
+    
+    # Special processing for PowerplayMerits events
+    if event == 'PowerplayMerits':
+        merits_gained = entry.get('MeritsGained', 0)
+
+        # Add merit source to the event data
+        event_data['meritSource'] = merit_source
+        event_data['meritSources'] = merit_sources
+
+
+        # Determine the source of the merits
+        merit_source = determine_powerplay_merit_source(entry)
+        
+        # Update local tracking
+        update_merit_sources(merit_source, merits_gained)
+        
+        
+        if logging_var:
+            logger.info(f"PowerplayMerits event: {merits_gained} merits from {merit_source}")
+    
+    # Special processing for ShipLocker events
+    elif event == 'ShipLocker':
+        # Extract PowerPlay commodities from ship locker
+        powerplay_commodities = extract_powerplay_commodities(entry)
+        if powerplay_commodities:
+            event_data['powerplayCommodities'] = powerplay_commodities
+            if logging_var:
+                logger.info(f"Found {len(powerplay_commodities)} PowerPlay commodities in ship locker")
+    
+    # Send to server
+    send_event_data(event_data)
+
+def extract_powerplay_commodities(entry: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Extract PowerPlay commodities from ShipLocker event"""
+    commodities = []
+    
+    # Check relevant sections of the ship locker
+    sections = ['Items', 'Components', 'Consumables', 'Data']
+    
+    for section in sections:
+        if section in entry:
+            for item in entry[section]:
+                name = item.get('Name', '').lower()
+                name_localized = item.get('Name_Localised', '').lower()
+                
+                # Check if this might be a PowerPlay commodity
+                is_powerplay_item = False
+                powerplay_keywords = [
+                    'propaganda', 'aid', 'supply', 'supplies', 'prisoner', 'prisoners',
+                    'report', 'reports', 'slaves', 'political', 'intelligence', 
+                    'countermeasure', 'garrison', 'material', 'protocol'
+                ]
+                
+                for keyword in powerplay_keywords:
+                    if keyword in name or keyword in name_localized:
+                        is_powerplay_item = True
+                        break
+                
+                if is_powerplay_item:
+                    commodities.append({
+                        'name': item.get('Name_Localised', item.get('Name', '')),
+                        'count': item.get('Count', 0)
+                    })
+    
+    return commodities
+
