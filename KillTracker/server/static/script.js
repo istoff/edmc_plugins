@@ -75,28 +75,19 @@ window.currentPower = 'Unknown Power';
 window.totalMerits = 0;
 window.sessionMerits = 0;
 
-// Add initialization on page load
+// Ensure toggle button is properly initialized when the page loads
 document.addEventListener('DOMContentLoaded', function() {
-  // Add after existing initialization code
-  setTimeout(() => {
-    console.log('Initializing PowerPlay widget toggle button');
-    
-    // Check for existing PowerPlay data in the page
-    const powerStatusEl = document.getElementById('powerStatus');
-    if (powerStatusEl && powerStatusEl.textContent) {
-      // Try to extract current power from status if it exists
-      const powerMatch = powerStatusEl.textContent.match(/([^:]+):/);
-      if (powerMatch && powerMatch[1]) {
-        window.currentPower = powerMatch[1].trim();
-      }
-    }
-    
-    console.log('Initialization complete with:', {
-      power: window.currentPower,
-      totalMerits: window.totalMerits,
-      sessionMerits: window.sessionMerits
+  console.log('Initializing PowerPlay toggle button');
+  
+  const toggleButton = document.getElementById('togglePowerPlayView');
+  if (toggleButton) {
+    toggleButton.addEventListener('click', function() {
+      window.togglePowerPlayView();
     });
-  }, 500);
+    console.log('Toggle button event listener attached');
+  } else {
+    console.warn('PowerPlay toggle button not found');
+  }
 });
 
 
@@ -112,6 +103,9 @@ const desktopButton = document.getElementById("desktopButton");
 socket.on('connect', () => {
   console.log('Connected to the server.');
 });
+
+socket.on('new_kill', handleNewKillData);
+socket.on('new_test', handleTestData);
 
 socket.on('disconnect', () => {
   console.log('Disconnected from the server.');
@@ -156,6 +150,88 @@ socket.on('powerplay_merits', function(data) {
 
 
 
+// Socket event listener with improved error handling
+socket.on('powerplay_commodities', function(data) {
+  console.log('Received PowerplayCommodities event:', data);
+  
+  try {
+    // Extract PowerPlay commodities from the data
+    let commodities = [];
+    
+    if (data && data.powerplayCommodities && Array.isArray(data.powerplayCommodities)) {
+      // Direct powerplayCommodities array is preferred if available
+      commodities = data.powerplayCommodities;
+      console.log(`Found ${commodities.length} commodities in powerplayCommodities`);
+    } else if (data) {
+      // Fallback: Process items from different categories if direct array not available
+      const categories = ['Items', 'Components', 'Consumables', 'Data'];
+      categories.forEach(category => {
+        if (data[category] && Array.isArray(data[category])) {
+          data[category].forEach(item => {
+            if (item && item.Name !== undefined && item.Count !== undefined) {
+              // Check if this might be a PowerPlay item
+              const name = (item.Name || '').toLowerCase();
+              const nameLocalised = (item.Name_Localised || item.Name || '').toLowerCase();
+              
+              // PowerPlay detection patterns
+              const powerPlayPatterns = [
+                'power', 'propaganda', 'aid', 'supply', 'prisoner', 'report', 
+                'slaves', 'political', 'intelligence', 'garrison'
+              ];
+              
+              // Check for PowerPlay patterns
+              const isPowerPlayItem = powerPlayPatterns.some(pattern => 
+                name.includes(pattern) || nameLocalised.includes(pattern)
+              );
+              
+              if (isPowerPlayItem) {
+                commodities.push({
+                  name: item.Name_Localised || item.Name,
+                  count: item.Count
+                });
+              }
+            }
+          });
+        }
+      });
+      console.log(`Found ${commodities.length} commodities by category processing`);
+    } else {
+      console.warn('Received invalid data object:', data);
+    }
+    
+    // Debug log to help diagnose issues
+    if (commodities.length > 0) {
+      console.log('PowerPlay commodities detected:');
+      commodities.forEach(c => console.log(`- ${c.name}: ${c.count}`));
+    } else {
+      console.log('No PowerPlay commodities found in data');
+    }
+    
+    // Update the global variable and UI with whatever we found
+    updatePowerPlayCommodities(commodities);
+  } catch (error) {
+    console.error('Error processing PowerPlay commodities:', error);
+    // Ensure we don't break the UI even if there's an error
+    updatePowerPlayCommodities([]);
+  }
+});
+
+// Initialize the powerplayCommodities variable properly on page load
+document.addEventListener('DOMContentLoaded', function() {
+  // Ensure the global variable exists and is an array
+  if (typeof powerplayCommodities === 'undefined') {
+    window.powerplayCommodities = [];
+    console.log('Initialized powerplayCommodities array');
+  } else if (!Array.isArray(powerplayCommodities)) {
+    window.powerplayCommodities = [];
+    console.log('Reset powerplayCommodities to empty array');
+  }
+});
+
+
+
+
+// Fixed togglePowerPlayView function with proper visibility checks
 window.togglePowerPlayView = function() {
   console.log('Toggle PowerPlay view called');
   const powerPlayTable = document.getElementById('powerPlayMerits');
@@ -168,7 +244,10 @@ window.togglePowerPlayView = function() {
     return;
   }
   
-  if (powerPlayWidgetActive) {
+  // Check current visibility
+  const isWidgetVisible = powerPlayWidget.style.display !== 'none';
+  
+  if (isWidgetVisible) {
     console.log('Switching to table view');
     // Switch to table view
     powerPlayWidget.style.display = 'none';
@@ -187,7 +266,6 @@ window.togglePowerPlayView = function() {
     updatePowerPlayWidget();
   }
 };
-
 
 
 // Function to get the current rank merit threshold
@@ -469,51 +547,176 @@ function getActivityDescription(data) {
   }
 }
 
-// Function to update PowerPlay commodities
-function updatePowerPlayCommodities(commodities) {
-  // Handle undefined or null commodities
-  if (!commodities) {
-    console.log('Received invalid powerplayCommodities data (undefined or null)');
-    commodities = [];
+// Improved function to calculate estimated merit value
+function calculateEstimatedMeritValue(name, count) {
+  const nameLower = name.toLowerCase();
+  let valuePerUnit = 10; // Default value
+  
+  // Higher value commodities (15-30 merits)
+  if (nameLower.includes('intelligence') || 
+      nameLower.includes('protocol') || 
+      nameLower.includes('research data') ||
+      nameLower.includes('power research') ||
+      nameLower.includes('power industrial') ||
+      nameLower.includes('power association')) {
+    valuePerUnit = 25;
+  }
+  // Medium value commodities (10-15 merits)
+  else if (nameLower.includes('propaganda') || 
+           nameLower.includes('political') || 
+           nameLower.includes('garrison') || 
+           nameLower.includes('prisoner') ||
+           nameLower.includes('power') ||
+           nameLower.includes('inventory record') ||
+           nameLower.includes('agricultural sample')) {
+    valuePerUnit = 15;
   }
   
-  // Handle non-array commodities
-  if (!Array.isArray(commodities)) {
-    console.log('Received non-array powerplayCommodities data:', commodities);
-    commodities = [];
-  }
-  
-  // Update the global variable
-  powerplayCommodities = commodities;
-  
-  // Update the widget display if it's active
-  if (powerPlayWidgetActive) {
-    updateInventoryDisplay();
-  }
+  return count * valuePerUnit;
 }
 
-// Function to update the inventory display
+
+
+// Fixed updatePowerPlayCommodities function with array check
+function updatePowerPlayCommodities(commodities) {
+  console.log('Updating PowerPlay commodities:', commodities);
+  
+  // Ensure powerplayCommodities is always an array
+  if (!commodities || !Array.isArray(commodities)) {
+    console.warn('Received invalid commodities data, defaulting to empty array', commodities);
+    powerplayCommodities = [];
+  } else {
+    // Update the global variable
+    powerplayCommodities = commodities;
+  }
+  
+  // Update the inventory display in the widget
+  updateInventoryDisplay();
+}
+
+
+// Fixed inventory display function with working sorting
 function updateInventoryDisplay() {
   const inventoryList = document.getElementById('powerPlayWidgetInventory');
-  if (!inventoryList) return;
+  if (!inventoryList) {
+    console.warn('PowerPlay widget inventory list element not found');
+    return;
+  }
   
   // Clear existing inventory items
   inventoryList.innerHTML = '';
   
-  // Add each commodity to the inventory list
-  if (!powerplayCommodities || powerplayCommodities.length === 0) {
+  // Make sure powerplayCommodities is an array before using forEach
+  if (!powerplayCommodities || !Array.isArray(powerplayCommodities) || powerplayCommodities.length === 0) {
     const emptyItem = document.createElement('div');
     emptyItem.className = 'inventory-item';
-    emptyItem.innerHTML = '<span class="item-name">No commodities found</span><span class="item-qty">0</span>';
+    emptyItem.innerHTML = '<span class="item-name">No commodities found</span><span class="item-qty">0</span><span class="item-value">0 merits</span>';
     inventoryList.appendChild(emptyItem);
-  } else {
-    powerplayCommodities.forEach(commodity => {
-      const item = document.createElement('div');
-      item.className = 'inventory-item';
-      item.innerHTML = `<span class="item-name">${commodity.name}</span><span class="item-qty">${commodity.count}</span>`;
-      inventoryList.appendChild(item);
+    console.log('No commodities to display');
+    return;
+  }
+  
+  // Process commodities to add merit values - create a new array so we don't modify the original
+  const processedCommodities = [];
+  
+  for (let i = 0; i < powerplayCommodities.length; i++) {
+    const commodity = powerplayCommodities[i];
+    
+    if (!commodity || typeof commodity !== 'object') {
+      continue;
+    }
+    
+    const name = commodity.name || 'Unknown Item';
+    const count = commodity.count || 0;
+    const estimatedValue = calculateEstimatedMeritValue(name, count);
+    const valuePerUnit = Math.round(estimatedValue / count);
+    
+    processedCommodities.push({
+      name,
+      count,
+      estimatedValue,
+      valuePerUnit
     });
   }
+  
+  console.log('Before sorting:', processedCommodities);
+  
+  // Sort commodities by estimated value (descending), then by count (descending)
+  processedCommodities.sort((a, b) => {
+    // First compare by total estimated value
+    const valueDiff = b.estimatedValue - a.estimatedValue;
+    
+    // If values are different, return that comparison
+    if (valueDiff !== 0) {
+      return valueDiff;
+    }
+    
+    // If values are the same, compare by count
+    return b.count - a.count;
+  });
+  
+  console.log('After sorting:', processedCommodities);
+  
+  // Display the sorted commodities
+  let totalEstimatedMerits = 0;
+  
+  for (let i = 0; i < processedCommodities.length; i++) {
+    const commodity = processedCommodities[i];
+    
+    const item = document.createElement('div');
+    item.className = 'inventory-item';
+    
+    totalEstimatedMerits += commodity.estimatedValue;
+    
+    item.innerHTML = `
+      <span class="item-name" title="${commodity.name}">${commodity.name}</span>
+      <span class="item-qty">${commodity.count}</span>
+      <span class="item-value">${commodity.estimatedValue} merits</span>
+    `;
+    inventoryList.appendChild(item);
+  }
+  
+  // Add a total row if there are commodities
+  const totalItem = document.createElement('div');
+  totalItem.className = 'inventory-item inventory-total';
+  totalItem.innerHTML = `
+    <span class="item-name">Total Estimated:</span>
+    <span class="item-qty"></span>
+    <span class="item-value">${totalEstimatedMerits} merits</span>
+  `;
+  inventoryList.appendChild(totalItem);
+  
+  console.log(`Displayed ${processedCommodities.length} commodities with total estimated value of ${totalEstimatedMerits} merits`);
+}
+
+// Make sure calculateEstimatedMeritValue is properly defined
+function calculateEstimatedMeritValue(name, count) {
+  // Default value if count is 0 or invalid
+  if (!count || count <= 0) return 0;
+  
+  const nameLower = (name || '').toLowerCase();
+  let valuePerUnit = 10; // Default value
+  
+  // Higher value commodities (15-30 merits)
+  if (nameLower.includes('intelligence') || 
+      nameLower.includes('protocol') || 
+      nameLower.includes('research data') ||
+      nameLower.includes('power research') ||
+      nameLower.includes('power industrial') ||
+      nameLower.includes('power association')) {
+    valuePerUnit = 25;
+  }
+  // Medium value commodities (10-15 merits)
+  else if (nameLower.includes('propaganda') || 
+           nameLower.includes('political') || 
+           nameLower.includes('garrison') || 
+           nameLower.includes('prisoner') ||
+           nameLower.includes('inventory record') ||
+           nameLower.includes('agricultural sample')) {
+    valuePerUnit = 15;
+  }
+  
+  return count * valuePerUnit;
 }
 
 function updatePowerplaySummary(data) {
@@ -551,24 +754,6 @@ function updatePowerplaySummary(data) {
   totalRow.insertCell(2).textContent = '';
   totalRow.insertCell(3).textContent = data.session_merits;
 }
-socket.on('powerplay_commodities', function (data) {
-  console.log('Received PowerplayCommodities event:', data);
-  updatePowerPlayCommodities(data);
-});
-socket.on('new_kill', handleNewKillData);
-socket.on('new_test', handleTestData);
-
-// Make sure to add event handlers to initialize the widget on page load
-document.addEventListener('DOMContentLoaded', function () {
-  // Add after existing initialization code
-  setTimeout(() => {
-    if (currentPower) {
-      createPowerPlayWidget();
-      updateMeritSourcesVisualization();
-    }
-  }, 300);
-});
-
 
 // DOM loaded event to initialize the UI
 document.addEventListener('DOMContentLoaded', function () {
@@ -1227,25 +1412,38 @@ function addTargetedShip(killData) {
   }
 }
 
-/**
- * Removes a targeted ship from the list when it's destroyed
- */
+
 function removeTargetedShip(killData) {
-  const index = targeted_ships.findIndex(
+  // Log for debugging
+  console.log('Attempting to remove targeted ship:', killData.Ship, killData.Faction);
+  console.log('Current targeted ships:', targeted_ships.map(s => s.Ship + ' / ' + s.Faction));
+  
+  // First try to find by exact match
+  let index = targeted_ships.findIndex(
     (ship) =>
       ship.Ship === killData.Ship &&
-      ship.Faction === killData.Faction &&
-      killData.bountyAmount - ship.bountyAmount < 10000
+      ship.Faction === killData.Faction
   );
+  
+  // If not found, try a more lenient approach based on ship type only
+  if (index === -1) {
+    index = targeted_ships.findIndex(
+      (ship) => ship.Ship === killData.Ship
+    );
+  }
 
   if (index !== -1) {
+    console.log(`Removing targeted ship at index ${index}: ${killData.shipname}`);
     speakText(GenerateRandomSpeech('Kill', killData));
     targeted_ships.splice(index, 1);
-    console.log(`Removed: ${killData.shipname} from targeted_ships`);
+  } else {
+    console.log(`Could not find targeted ship to remove: ${killData.shipname}`);
   }
 
   RenderShipsTargettedTable();
 }
+
+
 
 /**
  * Removes targeted ships that are older than the time limit
@@ -1294,93 +1492,18 @@ function updateSummaryTables(killData) {
   updateShipTypeBountiesGrid();
 }
 
-
-/**
- * Update the PowerPlay merits table
- */
-function updatePowerPlayCommodities(commodityData) {
-  const meritsTable = document.getElementById('powerPlayMerits');
-  const commoditiesTable = document.getElementById('powerPlayCommodities');
-
-  // Clear existing rows
-  while (meritsTable.rows.length > 1) {
-    meritsTable.deleteRow(1);
-  }
-  while (commoditiesTable.rows.length > 1) {
-    commoditiesTable.deleteRow(1);
-  }
-
-  // Add activities data
-  for (const [activity, details] of Object.entries(commodityData.activities)) {
-    if (activity === 'cargo_sold') continue; // Handle cargo separately
-
-    const row = activitiesTable.insertRow();
-    row.insertCell(0).textContent = activity.split('_').map(w =>
-      w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    row.insertCell(1).textContent = details;
-    row.insertCell(2).textContent = ''; // Events count would need to be tracked
-  }
-
-  // Add cargo sold activities
-  for (const [commodity, details] of Object.entries(commodityData.activities.cargo_sold)) {
-    const row = activitiesTable.insertRow();
-    row.insertCell(0).textContent = `Trading ${commodity}`;
-    row.insertCell(1).textContent = details.merits;
-    row.insertCell(2).textContent = details.tons;
-  }
-
-  summarySection.appendChild(activitiesTable);
-  container.appendChild(summarySection);
-
-  // Create commodities section
-  const commoditiesSection = document.createElement('div');
-  commoditiesSection.className = 'powerplay-section';
-
-  // Add header
-  const commHeader = document.createElement('h3');
-  commHeader.textContent = 'Commodity Inventory';
-  commoditiesSection.appendChild(commHeader);
-
-  // Add commodities table
-  const commTable = document.createElement('table');
-  commTable.className = 'powerplay-table';
-
-  // Add table headers
-  const commHeaderRow = commTable.insertRow();
-  commHeaderRow.insertCell(0).textContent = 'Commodity';
-  commHeaderRow.insertCell(1).textContent = 'Qty';
-  commHeaderRow.insertCell(2).textContent = 'Projected Value';
-
-  // Add commodities data
-  const categories = ['Items', 'Components', 'Consumables', 'Data'];
-  categories.forEach(category => {
-    if (commodityData[category] && commodityData[category].length > 0) {
-      commodityData[category].forEach(item => {
-        const row = commTable.insertRow();
-        row.insertCell(0).textContent = item.Name;
-        row.insertCell(1).textContent = item.Count;
-
-        // Calculate projected value (placeholder - would need actual merit values)
-        const projectedValue = item.Count * 30; // Example 30 merits per unit
-        row.insertCell(2).textContent = projectedValue;
-      });
-    }
-  });
-
-  commoditiesSection.appendChild(commTable);
-  container.appendChild(commoditiesSection);
-
-  // Add totals section
-  const totalsSection = document.createElement('div');
-  totalsSection.className = 'powerplay-totals';
-
-  totalsSection.innerHTML = `
-    <div>Total Merits Earned: ${commodityData.session_merits || 0}</div>
-    <div>Total Merits In Inventory: ${commodityData.total_merits || 0}</div>
-  `;
-
-  container.appendChild(totalsSection);
+// Enhanced update function for PowerPlay commodities display
+function updatePowerPlayCommodities(commodities) {
+  console.log('Updating PowerPlay commodities:', commodities);
+  
+  // Update the global variable
+  powerplayCommodities = commodities || [];
+  
+  // Update the inventory display in the widget
+  updateInventoryDisplay();
 }
+
+
 
 // Replace the updatePowerPlayTable function
 function updatePowerPlayTable(killData) {
@@ -1391,17 +1514,26 @@ function updatePowerPlayTable(killData) {
   updatePowerStatus(killData);
 }
 
-// Add initialization on page load
+// Initialization when page loads
 document.addEventListener('DOMContentLoaded', function() {
-  // Add after existing initialization code
+  console.log('Initializing event listeners');
+  
+  // Set up toggle button event listener
+  const toggleButton = document.getElementById('togglePowerPlayView');
+  if (toggleButton) {
+    toggleButton.addEventListener('click', function() {
+      window.togglePowerPlayView(); // Use window.togglePowerPlayView to ensure global scope
+    });
+  }
+  
+  // Load any existing session data
   setTimeout(() => {
-    // Set up toggle button
-    const toggleButton = document.getElementById('togglePowerPlayView');
-    if (toggleButton) {
-      toggleButton.addEventListener('click', togglePowerPlayView);
+    if (currentPower) {
+      updatePowerPlayWidget();
     }
-  }, 500);
+  }, 300);
 });
+
 
 // Add function to create the PowerPlay widget
 

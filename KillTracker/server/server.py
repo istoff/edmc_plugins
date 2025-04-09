@@ -242,84 +242,84 @@ def process_ship_targeted_event(entry, data):
     }
     return processed_data
 
+# Improved ShipLocker event processing for PowerPlay commodities
+
 def process_ship_locker_event(entry, data):
     """Process ShipLocker events and extract relevant commodities for powerplay"""
-    relevant_items = {
-        'Items': [],
-        'Components': [],
-        'Consumables': [],
-        'Data': []
-    }
+    powerplay_commodities = []
     
-    # Define which commodities we care about for powerplay (sorted by merit value descending)
-    powerplay_items = {
-        'Data': [
-            # Special Intelligence Items (15-25 merits)
-            'protectedresearchprotocol',
-            'sensitivefinancialrecord', 
-            'confidentialcorrespondence',
-            'strategicprojectiondata',
-            'tacticalintelligence',
-            
-            # Power Data Types (10-15 merits)
-            'powerintelligencedata',
-            'powerstrategicdata',
-            'powereconomicdata',
-            'powersecuritydata',
-            'powermilitarydata',
-            'powerindustrialdata',
-            'powerresearchdata',
-            'powerpoliticaldata',
-            'powerassociationdata',
-            
-            # Technology/Research (8-15 merits)
-            'advancedresearchmaterial',
-            'prototypetechnology',
-            'scientificbreakthrough',
-            'researchdatafragment',
-            'technicalspecification',
-            
-            # Resource Samples (5-12 merits)
-            'advancedresourceextract',
-            'syntheticmaterial',
-            'industrialcomposite',
-            'rareelementsample',
-            'mineralsample',
-            
-            # Biological/Agricultural (5-12 merits)
-            'enhancedagriculturalelements',
-            'geneticallymodifiedcrops',
-            'cultivatedspecimens',
-            'biologicalresidue',
-            'agriculturalsample'
-        ],
-        'Items': ['weaponschematic', 'buildingschematic'],
-        'Components': ['encryptedmemorychip', 'scrambler'],
-        'Consumables': ['amm_grenade_emp', 'amm_grenade_shield', 'bypass']
-    }
+    # Define powerplay keyword patterns for better detection
+    powerplay_patterns = [
+        # Power prefixed items - direct indicators of PowerPlay commodities
+        "power", 
+        
+        # General PowerPlay keywords that appear in commodity names
+        "propaganda", "aid", "supply", "supplies", "prisoner", "prisoners",
+        "report", "reports", "slaves", "political", "intelligence", 
+        "countermeasure", "garrison", "material", "protocol", "package",
+        "order", "marked", "corruption", "evidence", "dissent", "vote",
+        
+        # Faction specific items
+        "hudson", "winters", "mahon", "patreus", "torval", "duval", 
+        "delaine", "yong-rui", "antal", "grom"
+    ]
     
-    # Filter the event data for relevant commodities
-    for category in ['Items', 'Components', 'Consumables', 'Data']:
-        if category in entry:
-            for item in entry[category]:
-                if item['Name'] in powerplay_items[category]:
-                    relevant_items[category].append({
-                        'Name': item.get('Name_Localised', item['Name']),
-                        'Count': item['Count']
+    # Sections to check for PowerPlay commodities
+    sections = ['Items', 'Components', 'Consumables', 'Data']
+    
+    # Check each section of the ShipLocker
+    for section in sections:
+        if section in entry and isinstance(entry[section], list):
+            items = entry[section]
+            
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                    
+                # Get item details
+                name = item.get('Name', '').lower()
+                name_localized = item.get('Name_Localised', '').lower()
+                count = item.get('Count', 0)
+                
+                # Special handling for known PowerPlay prefixes
+                if name.startswith('power'):
+                    # This is almost certainly a PowerPlay commodity
+                    powerplay_commodities.append({
+                        'name': item.get('Name_Localised', item.get('Name', '')),
+                        'count': count
+                    })
+                    continue
+                
+                # Check for other powerplay patterns
+                is_powerplay_item = False
+                for pattern in powerplay_patterns:
+                    if pattern in name or pattern in name_localized:
+                        is_powerplay_item = True
+                        break
+                
+                if is_powerplay_item:
+                    powerplay_commodities.append({
+                        'name': item.get('Name_Localised', item.get('Name', '')),
+                        'count': count
                     })
     
+    # Log the found commodities
+    if powerplay_commodities:
+        print(f"Found {len(powerplay_commodities)} PowerPlay commodities in ShipLocker:")
+        for commodity in powerplay_commodities:
+            print(f"  - {commodity['name']}: {commodity['count']}")
+    
+    # Return the processed event data
     return {
         'timestamp': entry.get('timestamp', ''),
         'event': 'ShipLocker',
         'eventType': 'ShipLocker',
-        'Items': relevant_items['Items'],
-        'Components': relevant_items['Components'],
-        'Consumables': relevant_items['Consumables'],
-        'Data': relevant_items['Data'],
+        'powerplayCommodities': powerplay_commodities,
         'system': data.get('system', ''),
         'station': data.get('station', ''),
         'cmdr': data.get('cmdr', '')
     }
+
 
 @app.route('/')
 def home():
@@ -329,12 +329,8 @@ def home():
 def update_kills():
     try:
         data = request.json
-        #logger.info(f"Received event: {data.get('event', 'Unknown')}")
-        # write to console
         print(f"Received event: {data.get('event', 'Unknown')}")
         
-
-
         # Extract the raw entry data
         entry = data.get('entry', {})
         event_type = entry.get('event', '')
@@ -362,7 +358,9 @@ def update_kills():
             
         elif event_type == 'ShipLocker':
             processed_data = process_ship_locker_event(entry, data)
+            # Emit with the correct event type
             socketio.emit('powerplay_commodities', processed_data)
+            print(f"Emitted powerplay_commodities with {len(processed_data.get('powerplayCommodities', []))} items")
         
         # Test event
         elif event_type == 'test':
@@ -377,6 +375,7 @@ def update_kills():
     except Exception as e:
         logger.error(f"Error processing event: {e}")
         return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+
 
 @app.route('/powerplay_merits', methods=['POST'])
 def update_powerplay():

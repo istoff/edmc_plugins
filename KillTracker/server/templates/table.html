@@ -1,22 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EDMC Kill Tracker</title>
-  <link rel="stylesheet" href="/static/styles.css">
-  <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
-  <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
-  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="/static/script.js" defer></script>
-  <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/static/icons/favicon-16x16.png">
-</head>
+<!-- Add this to the <head> section of table.html to load Elite Dangerous themed fonts -->
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDMC Kill Tracker</title>
+    <!-- Updated font imports for Elite Dangerous theme -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Quantico:wght@400;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
+    <script src="/static/script.js" defer></script>
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/icons/favicon-16x16.png">
+  </head>
+  
 
 <body>
   <div class="container">
@@ -186,9 +190,16 @@
                 <tbody id="eventTypeBountiesTableBody"></tbody>
               </table>
             </div>
-            <!-- Add this inside the summary-table div that contains the PowerPlay Merits section -->
+
+
+            <!-- Improved PowerPlay Widget Layout with Repositioned Toggle Button -->
             <div class="summary-table">
-              <h3>PowerPlay Merits</h3>
+              <div class="powerplay-header">
+                <h3>PowerPlay Merits</h3>
+                <button id="togglePowerPlayView" class="button small toggle-button" onclick="togglePowerPlayView()">
+                  Switch to Widget View
+                </button>
+              </div>
 
               <!-- The regular table (initially visible) -->
               <table id="powerPlayMerits" class="data-table sortable">
@@ -210,20 +221,22 @@
                     <h2 id="powerPlayWidgetPower" class="power-name">Unknown Power</h2>
                     <div id="powerPlayWidgetRating" class="power-level">Rating 1</div>
                   </div>
+                  <!-- Merit stats in header -->
+                  <div class="power-stat-container">
+                    <div class="merit-stats-compact">
+                      <div class="merit-box-compact">
+                        <span class="merit-label-compact">This Week:</span>
+                        <span id="powerPlayWidgetThisWeek" class="merit-value-compact">0</span>
+                      </div>
+                      <div class="merit-box-compact">
+                        <span class="merit-label-compact">Total:</span>
+                        <span id="powerPlayWidgetTotal" class="merit-value-compact">0</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div class="widget-content">
-                  <div class="merit-stats">
-                    <div class="merit-box">
-                      <div class="merit-label">MERITS THIS WEEK</div>
-                      <div id="powerPlayWidgetThisWeek" class="merit-value">0</div>
-                    </div>
-                    <div class="merit-box">
-                      <div class="merit-label">TOTAL MERITS</div>
-                      <div id="powerPlayWidgetTotal" class="merit-value">0</div>
-                    </div>
-                  </div>
-
                   <div class="merit-breakdown">
                     <div class="breakdown-title">MERIT SOURCES</div>
                     <div class="breakdown-item">
@@ -280,6 +293,7 @@
                       <div class="inventory-item">
                         <span class="item-name">No commodities found</span>
                         <span class="item-qty">0</span>
+                        <span class="item-value">0 merits</span>
                       </div>
                     </div>
                   </div>
@@ -289,17 +303,12 @@
                   Updated: <span id="powerPlayWidgetTimestamp"></span>
                 </div>
               </div>
-
-              <!-- Toggle button for widget/table view -->
-              <div class="widget-toggle">
-                <button id="togglePowerPlayView" class="button small" onclick="togglePowerPlayView()">
-                  Switch to Widget View
-                </button>
-              </div>
             </div>
           </div>
         </div>
-    </main>
+      </div>
+  </div>
+  </main>
   </div>
 
   <script>

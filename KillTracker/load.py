@@ -324,12 +324,12 @@ def update_merit_sources(source: str, amount: int):
     else:
         merit_sources["Other"] += amount
 
+
 def journal_entry(cmdr, is_beta, system, station, entry, state):
-    """Process journal entries and send relevant ones to the server."""
+    """Process journal entries and send relevant ones to the server with improved PowerPlay tracking."""
     global event_history
     global merit_source
     global merit_sources
-
     
     # Add to event history for context analysis
     event_history.append(entry)
@@ -362,25 +362,23 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     # Special processing for PowerplayMerits events
     if event == 'PowerplayMerits':
         merits_gained = entry.get('MeritsGained', 0)
-
-        # Add merit source to the event data
-        event_data['meritSource'] = merit_source
-        event_data['meritSources'] = merit_sources
-
-
+        
         # Determine the source of the merits
         merit_source = determine_powerplay_merit_source(entry)
         
         # Update local tracking
         update_merit_sources(merit_source, merits_gained)
         
+        # Add merit source information to the event data
+        event_data['meritSource'] = merit_source
+        event_data['meritSources'] = merit_sources
         
         if logging_var:
             logger.info(f"PowerplayMerits event: {merits_gained} merits from {merit_source}")
     
     # Special processing for ShipLocker events
     elif event == 'ShipLocker':
-        # Extract PowerPlay commodities from ship locker
+        # Extract PowerPlay commodities from ship locker with improved detection
         powerplay_commodities = extract_powerplay_commodities(entry)
         if powerplay_commodities:
             event_data['powerplayCommodities'] = powerplay_commodities
@@ -390,27 +388,40 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     # Send to server
     send_event_data(event_data)
 
+
 def extract_powerplay_commodities(entry: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Extract PowerPlay commodities from ShipLocker event"""
+    """Extract PowerPlay commodities from ShipLocker event with improved detection"""
     commodities = []
     
     # Check relevant sections of the ship locker
-    sections = ['Items', 'Components', 'Consumables', 'Data']
+    sections = ['Items', 'Components', 'Consumables', 'Data', 'Inventory']
     
     for section in sections:
         if section in entry:
+            # Ensure we're working with a list
+            if not isinstance(entry[section], list):
+                continue
+                
             for item in entry[section]:
+                if not isinstance(item, dict) or 'Name' not in item:
+                    continue
+                    
                 name = item.get('Name', '').lower()
                 name_localized = item.get('Name_Localised', '').lower()
+                count = item.get('Count', 0)
                 
-                # Check if this might be a PowerPlay commodity
+                # Expanded list of PowerPlay keywords for better detection
                 is_powerplay_item = False
                 powerplay_keywords = [
                     'propaganda', 'aid', 'supply', 'supplies', 'prisoner', 'prisoners',
                     'report', 'reports', 'slaves', 'political', 'intelligence', 
-                    'countermeasure', 'garrison', 'material', 'protocol'
+                    'countermeasure', 'garrison', 'material', 'protocol', 'package',
+                    'order', 'marked', 'evidence', 'dissent', 'pamphlet', 'bulletin',
+                    'certificate', 'treaty', 'document', 'ethos', 'survey', 'ballot',
+                    'vote', 'corruption'
                 ]
                 
+                # Check both the base name and localized name
                 for keyword in powerplay_keywords:
                     if keyword in name or keyword in name_localized:
                         is_powerplay_item = True
@@ -419,8 +430,7 @@ def extract_powerplay_commodities(entry: Dict[str, Any]) -> List[Dict[str, Any]]
                 if is_powerplay_item:
                     commodities.append({
                         'name': item.get('Name_Localised', item.get('Name', '')),
-                        'count': item.get('Count', 0)
+                        'count': count
                     })
     
     return commodities
-
