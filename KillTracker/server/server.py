@@ -173,15 +173,43 @@ def save_powerplay_session():
     except Exception as e:
         logger.error(f"Error saving PowerPlay session: {e}")
 
+def normalize_ship_name(ship_name, raw_name=None):
+    """Convert ship name to standardized format matching image filenames"""
+    # First try to use localized name if available
+    if ship_name and ship_name != 'Unknown':
+        # Convert to lowercase and remove special characters
+        normalized = ship_name.lower().replace(' ', '-').replace('_', '-')
+        normalized = ''.join(c for c in normalized if c.isalnum() or c == '-')
+        
+        # Remove any remaining special cases
+        normalized = normalized.replace('type-', 'type').replace('mk-', 'mk')
+        return normalized
+    
+    # Fall back to raw name if no localized name
+    if raw_name:
+        return raw_name.lower().replace(' ', '-').replace('_', '-')
+    
+    return 'unknown-ship'
+
 def process_bounty_event(entry, data):
     """Process Bounty events and format for the client"""
+    # Get display name - prefer localized, fall back to raw
+    display_name = entry.get('Target_Localised', 
+                           entry.get('Ship_Localised',
+                           entry.get('Target',
+                           entry.get('Ship', 'Unknown'))))
+    
+    # Get raw name for normalization
+    raw_name = entry.get('Target', entry.get('Ship', ''))
+    normalized_name = normalize_ship_name(display_name, raw_name)
+    
     processed_data = {
         'timestamp': entry.get('timestamp', ''),
         'event': 'Bounty',
         'eventType': 'Bounty',
-        'shipname': entry.get('Target_Localised', entry.get('Ship_Localised', 'Unknown')),
-        'Ship': entry.get('Target_Localised', entry.get('Ship_Localised', 'Unknown')),
-        'shipImageFileName': entry.get('Target', '').replace('-', '').replace(' ', '-'),
+        'shipname': display_name,
+        'Ship': display_name,
+        'shipImageFileName': normalized_name,
         'bountyAmount': entry.get('TotalReward', 0),
         'VictimFaction': entry.get('VictimFaction', 'Unknown'),
         'Faction': entry.get('VictimFaction', 'Unknown'),
