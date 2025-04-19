@@ -173,6 +173,12 @@ def save_powerplay_session():
     except Exception as e:
         logger.error(f"Error saving PowerPlay session: {e}")
 
+def to_title_case(name):
+    """Convert string to title case (e.g. 'anaconda' -> 'Anaconda')"""
+    if not name or name == 'Unknown':
+        return name
+    return name.title()
+
 def normalize_ship_name(ship_name, raw_name=None):
     """Convert ship name to standardized format matching image filenames"""
     # First try to use localized name if available
@@ -202,6 +208,9 @@ def process_bounty_event(entry, data):
     # Get raw name for normalization
     raw_name = entry.get('Target', entry.get('Ship', ''))
     normalized_name = normalize_ship_name(display_name, raw_name)
+    
+    # Apply title case to display names for better readability
+    display_name = to_title_case(display_name)
     
     processed_data = {
         'timestamp': entry.get('timestamp', ''),
