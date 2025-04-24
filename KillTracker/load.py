@@ -100,16 +100,24 @@ def prefs_changed(cmdr: str, is_beta: bool) -> None:
     global ip_var, port_var, speech_var, localhost_var, logging_var, server_url
     
     try:
-        # Get current values from widgets
-        ip_var = config.get_str("KillsTracker_IP")
-        port_var = config.get_int("KillsTracker_PORT") or 5050
-        speech_var = config.get_int("KillsTracker_SPEECH") or False
-        localhost_var = config.get_int("KillsTracker_LOCALHOST") or True
-        logging_var = config.get_int("KillsTracker_LOG") or False
+        # Update config with current UI values
+        ip_var = ip_var_tk.get()
+        port_var = port_var_tk.get()
+        speech_var = speech_var_tk.get()
+        localhost_var = localhost_var_tk.get()
+        logging_var = logging_var_tk.get()
         
         # Update the server URL
         server_url = f"http://{ip_var}:{port_var}/new_kill"
+        
+        # Save all settings to config
+        config.set("KillsTracker_IP", ip_var)
+        config.set("KillsTracker_PORT", port_var)
+        config.set("KillsTracker_SPEECH", speech_var)
+        config.set("KillsTracker_LOCALHOST", localhost_var)
+        config.set("KillsTracker_LOG", logging_var)
         config.set("KillsTracker_URL", server_url)
+        config.save()
         
         if logging_var:
             logger.info("KillsTracker preferences saved")
@@ -248,26 +256,43 @@ def create_new_prefs_ui(frame):
     def cbLoggingClicked():
         return "Logging Enabled" if logging_var_tk.get() else "Logging Disabled"
     
-    # Button commands
-    btnGetMyIP.configure(command=lambda: (ip_var_tk.set(get_current_ip()), 
-                                          lblServer.config(text=f"Server Address: http://{ip_var_tk.get()}:{port_var_tk.get()}")))
+    def update_config():
+        """Update config with current UI values"""
+        config.set("KillsTracker_IP", ip_var_tk.get())
+        config.set("KillsTracker_PORT", port_var_tk.get())
+        config.set("KillsTracker_SPEECH", speech_var_tk.get())
+        config.set("KillsTracker_LOCALHOST", localhost_var_tk.get())
+        config.set("KillsTracker_LOG", logging_var_tk.get())
+        config.set("KillsTracker_URL", f"http://{ip_var_tk.get()}:{port_var_tk.get()}/new_kill")
+        config.save()
+
+    # Button commands with config updates
+    btnGetMyIP.configure(command=lambda: (
+        ip_var_tk.set(get_current_ip()),
+        lblServer.config(text=f"Server Address: http://{ip_var_tk.get()}:{port_var_tk.get()}"),
+        update_config()
+    ))
     
-    btnTestServer.configure(command=lambda: lblMessage.config(text=cbTestServerClicked()))
+    btnTestServer.configure(command=lambda: (
+        lblMessage.config(text=cbTestServerClicked()),
+        update_config()
+    ))
     
-    cbSpeech.configure(command=lambda: lblMessage.config(text=cbSpeechClicked()))
+    cbSpeech.configure(command=lambda: (
+        lblMessage.config(text=cbSpeechClicked()),
+        update_config()
+    ))
     
-    cbLocalHost.configure(command=lambda: lblMessage.config(text=cbLocalHostClicked()))
+    cbLocalHost.configure(command=lambda: (
+        lblMessage.config(text=cbLocalHostClicked()),
+        update_config()
+    ))
     
-    cbLogging.configure(command=lambda: lblMessage.config(text=cbLoggingClicked()))
-    
-    # Save references to the Tkinter variables for use in prefs_changed
-    config.set("KillsTracker_IP", ip_var_tk.get())
-    config.set("KillsTracker_PORT", port_var_tk.get())
-    config.set("KillsTracker_SPEECH", speech_var_tk.get())
-    config.set("KillsTracker_LOCALHOST", localhost_var_tk.get())
-    config.set("KillsTracker_LOG", logging_var_tk.get())
-    config.set("KillsTracker_URL", f"http://{ip_var_tk.get()}:{port_var_tk.get()}/new_kill")
-    
+    cbLogging.configure(command=lambda: (
+        lblMessage.config(text=cbLoggingClicked()),
+        update_config()
+    ))
+    config.save()
     return frame
 
 def test_http_post():
